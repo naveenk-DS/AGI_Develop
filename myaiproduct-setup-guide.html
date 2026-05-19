@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MyAIProduct — Complete Setup Guide</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap');
+
+:root {
+  --bg:        #0a0c10;
+  --bg2:       #0f1218;
+  --bg3:       #161b24;
+  --border:    #1e2736;
+  --text:      #cdd6f4;
+  --muted:     #6b7a9a;
+  --teal:      #00d4aa;
+  --purple:    #9b72ff;
+  --coral:     #ff6b6b;
+  --amber:     #ffb347;
+  --blue:      #4fc3f7;
+  --green:     #69ff87;
+  --pink:      #ff79c6;
+  --code-bg:   #070b10;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Syne', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  padding-bottom: 80px;
+}
+
+/* ── HEADER ── */
+.hero {
+  background: linear-gradient(135deg, #0a0c10 0%, #0d1520 50%, #0a0c10 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 48px 32px 36px;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 60% at 70% 50%, #00d4aa08, transparent),
+              radial-gradient(ellipse 40% 80% at 20% 30%, #9b72ff08, transparent);
+  pointer-events: none;
+}
+.hero-inner { max-width: 860px; margin: 0 auto; position: relative; }
+.badge {
+  display: inline-block; background: #00d4aa15; border: 1px solid #00d4aa40;
+  color: var(--teal); border-radius: 20px; padding: 4px 14px;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; margin-bottom: 16px;
+}
+.hero h1 {
+  font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800;
+  line-height: 1.15; margin-bottom: 12px;
+  background: linear-gradient(135deg, #fff 30%, #00d4aa);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.hero p { color: var(--muted); font-size: 0.95rem; max-width: 560px; }
+
+/* ── NAV ── */
+.nav-wrap {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(10,12,16,0.92); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  overflow-x: auto;
+}
+.nav {
+  display: flex; gap: 0; max-width: 860px; margin: 0 auto;
+}
+.nav-btn {
+  flex-shrink: 0; border: none; background: none;
+  color: var(--muted); font-family: 'Syne', sans-serif;
+  font-size: 0.78rem; font-weight: 600;
+  padding: 14px 18px; cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+.nav-btn:hover { color: var(--text); }
+.nav-btn.active { color: var(--teal); border-bottom-color: var(--teal); }
+
+/* ── MAIN LAYOUT ── */
+.main { max-width: 860px; margin: 0 auto; padding: 32px; }
+
+.section { display: none; }
+.section.active { display: block; }
+
+/* ── PHASE HEADER ── */
+.phase-header {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 28px; padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.phase-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; flex-shrink: 0;
+}
+.phase-header h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: 4px; }
+.phase-header p  { font-size: 0.82rem; color: var(--muted); }
+
+/* ── STEP CARD ── */
+.step {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.step-head {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 20px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+.step-head:hover { background: var(--bg3); }
+.step-num {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700; font-size: 0.8rem; flex-shrink: 0;
+}
+.step-info { flex: 1; }
+.step-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 2px; }
+.step-desc  { font-size: 0.78rem; color: var(--muted); }
+.step-time  {
+  font-size: 0.7rem; color: var(--muted);
+  background: var(--bg3); border-radius: 6px; padding: 3px 8px;
+  white-space: nowrap; flex-shrink: 0;
+}
+.chevron { color: var(--muted); font-size: 0.9rem; transition: transform 0.2s; flex-shrink: 0; }
+.step.open .chevron { transform: rotate(90deg); }
+
+.step-body { display: none; padding: 0 20px 20px; }
+.step.open .step-body { display: block; }
+
+/* ── WHERE label ── */
+.where {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 10px;
+  font-size: 0.72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin-bottom: 10px; margin-right: 6px;
+}
+.where.win  { border-color: #4fc3f740; color: var(--blue); }
+.where.term { border-color: #69ff8740; color: var(--green); }
+.where.vs   { border-color: #9b72ff40; color: var(--purple); }
+.where.file { border-color: #ffb34740; color: var(--amber); }
+.where.note { border-color: #ff79c640; color: var(--pink); }
+
+/* ── CODE BLOCK ── */
+.code-wrap { position: relative; margin: 10px 0; }
+.code-label {
+  position: absolute; top: 8px; left: 12px;
+  font-size: 0.65rem; color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.copy-btn {
+  position: absolute; top: 8px; right: 8px;
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--muted); border-radius: 6px;
+  padding: 3px 10px; font-size: 0.68rem;
+  cursor: pointer; font-family: 'Syne', sans-serif;
+  transition: color 0.2s, border-color 0.2s;
+}
+.copy-btn:hover { color: var(--teal); border-color: var(--teal); }
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 36px 16px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem; line-height: 1.75;
+  overflow-x: auto; white-space: pre;
+}
+.c-green  { color: #69ff87; }
+.c-teal   { color: #00d4aa; }
+.c-amber  { color: #ffb347; }
+.c-muted  { color: #4a5568; }
+.c-pink   { color: #ff79c6; }
+.c-blue   { color: #4fc3f7; }
+.c-coral  { color: #ff6b6b; }
+
+/* ── NOTE / TIP ── */
+.note-box {
+  border-radius: 8px; padding: 12px 14px;
+  font-size: 0.8rem; margin: 10px 0;
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.note-box.tip    { background: #00d4aa0d; border: 1px solid #00d4aa25; }
+.note-box.warn   { background: #ffb3470d; border: 1px solid #ffb34725; }
+.note-box.info   { background: #9b72ff0d; border: 1px solid #9b72ff25; }
+.note-box .icon  { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+/* ── CHECKLIST ── */
+.checklist { list-style: none; margin: 10px 0; }
+.checklist li {
+  display: flex; gap: 10px; align-items: flex-start;
+  font-size: 0.82rem; padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+}
+.checklist li:last-child { border-bottom: none; }
+.check { color: var(--teal); flex-shrink: 0; margin-top: 1px; }
+.check-pending { color: var(--muted); flex-shrink: 0; }
+
+/* ── TAGS ── */
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.tag {
+  border-radius: 5px; padding: 2px 8px;
+  font-size: 0.68rem; font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* ── PROGRESS ── */
+.progress-section {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px; margin-bottom: 24px;
+}
+.progress-title { font-weight: 700; font-size: 0.85rem; margin-bottom: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.prog-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.prog-label { font-size: 0.75rem; width: 140px; flex-shrink: 0; }
+.prog-bar { flex: 1; height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 3px; }
+.prog-val { font-size: 0.72rem; color: var(--muted); width: 36px; text-align: right; flex-shrink: 0; }
+
+/* ── FOLDER TREE ── */
+.tree {
+  background: var(--code-bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem; line-height: 2;
+}
+
+/* ── DIVIDER ── */
+.divider {
+  height: 1px; background: var(--border);
+  margin: 24px 0;
+}
+
+/* ── PHASE PILL ── */
+.phase-pill {
+  display: inline-block; border-radius: 20px;
+  padding: 4px 12px; font-size: 0.7rem; font-weight: 700;
+  margin-bottom: 16px; letter-spacing: 0.04em;
+}
+
+/* scroll reveal */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.step { animation: fadeUp 0.25s ease both; }
+.step:nth-child(2) { animation-delay: 0.05s; }
+.step:nth-child(3) { animation-delay: 0.1s; }
+.step:nth-child(4) { animation-delay: 0.15s; }
+.step:nth-child(5) { animation-delay: 0.2s; }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="badge">Complete Setup Guide · Day 1 → Hardware</div>
+    <h1>Build Your AI Product<br>From Scratch</h1>
+    <p>Step-by-step · Every command · Every file · Every folder · Windows first → Linux after · UV + Ollama + n8n + PostgreSQL + FastAPI</p>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav-wrap">
+  <nav class="nav">
+    <button class="nav-btn active" onclick="show('s0')">🟢 Day 1 Setup</button>
+    <button class="nav-btn" onclick="show('s1')">📁 Folder & Files</button>
+    <button class="nav-btn" onclick="show('s2')">🐍 Python Code</button>
+    <button class="nav-btn" onclick="show('s3')">🐳 Docker</button>
+    <button class="nav-btn" onclick="show('s4')">🧪 Test & Run</button>
+    <button class="nav-btn" onclick="show('s5')">🐧 Linux After</button>
+    <button class="nav-btn" onclick="show('s6')">📅 Daily Habit</button>
+  </nav>
+</div>
+
+<div class="main">
+
+<!-- ══════════════════════════════════════════
+     SECTION 0 — DAY 1 SETUP
+══════════════════════════════════════════ -->
+<div class="section active" id="s0">
+  <div class="phase-header">
+    <div class="phase-icon" style="background:#00d4aa15">🚀</div>
+    <div>
+      <h2>Day 1 — Install Everything</h2>
+      <p>Windows · PowerShell as Administrator · ~90 minutes total</p>
+    </div>
+  </div>
+
+  <div class="note-box warn">
+    <span class="icon">⚠️</span>
+    <span>Run PowerShell as <strong>Administrator</strong> for every command on this page. Right-click PowerShell → "Run as administrator".</span>
+  </div>
+
+  <!-- STEP 1: Git -->
+  <div class="step open">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#00d4aa20;color:#00d4aa">01</div>
+      <div class="step-info">
+        <div class="step-title">Install Git</div>
+        <div class="step-desc">Version control — saves your work forever</div>
+      </div>
+      <div class="step-time">~3 min</div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where win">🪟 PowerShell Admin</span>
+      <div class="code-wrap">
+        <div class="code-label">install</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">winget</span> install Git.Git
+<span class="c-muted"># close PowerShell, reopen as Admin, then verify:</span>
+<span class="c-teal">git</span> --version
+<span class="c-muted"># Expected: git version 2.x.x</span></pre>
+      </div>
+      <div class="note-box tip">
+        <span class="icon">💡</span>
+        <span>After install, close and reopen PowerShell every time so new commands are found.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: VS Code -->
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#9b72ff20;color:#9b72ff">02</div>
+      <div class="step-info">
+        <div class="step-title">Install VS Code</div>
+        <div class="step-desc">Your code editor — where you write all code</div>
+      </div>
+      <div class="step-time">~5 min</div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where win">🪟 PowerShell Admin</span>
+      <div class="code-wrap">
+        <div class="code-label">install</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">winget</span> install Microsoft.VisualStudioCode
+<span class="c-muted"># Reopen terminal, verify:</span>
+<span class="c-teal">code</span> --version</pre>
+      </div>
+      <span class="where note">📦 Extensions to install inside VS Code</span>
+      <div class="code-wrap">
+        <div class="code-label">vs code extensions</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">code</span> --install-extension ms-python.python
+<span class="c-teal">code</span> --install-extension ms-python.pylance
+<span class="c-teal">code</span> --install-extension ms-azuretools.vscode-docker
+<span class="c-teal">code</span> --install-extension eamodio.gitlens
+<span class="c-teal">code</span> --install-extension humao.rest-client
+<span class="c-teal">code</span> --install-extension ms-vscode-remote.remote-wsl</pre>
+      </div>
+      <div class="note-box tip">
+        <span class="icon">💡</span>
+        <span>REST Client lets you test your API from inside VS Code — no Postman needed.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: Python -->
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#ffb34720;color:#ffb347">03</div>
+      <div class="step-info">
+        <div class="step-title">Install Python 3.12</div>
+        <div class="step-desc">Must be 3.11 or higher</div>
+      </div>
+      <div class="step-time">~5 min</div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where win">🪟 PowerShell Admin</span>
+      <div class="code-wrap">
+        <div class="code-label">install</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">winget</span> install Python.Python.3.12
+<span class="c-muted"># Reopen terminal, verify:</span>
+<span class="c-teal">python</span> --version
+<span class="c-muted"># Expected: Python 3.12.x</span>
+<span class="c-teal">pip</span> --version
+<span class="c-muted"># Expected: pip 24.x.x</span></pre>
+      </div>
+      <div class="note-box warn">
+        <span class="icon">⚠️</span>
+        <span>During Python install — check <strong>"Add Python to PATH"</strong>. Without this, python command won't work.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4: UV -->
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#00d4aa20;color:#00d4aa">04</div>
+      <div class="step-info">
+        <div class="step-title">Install UV — replaces pip forever</div>
+        <div class="step-desc">10x faster · lockfile · works on every machine identically</div>
+      </div>
+      <div class="step-time">~2 min</div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where win">🪟 PowerShell Admin</span>
+      <div class="code-wrap">
+        <div class="code-label">install UV</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">powershell</span> -c <span class="c-green">"irm https://astral.sh/uv/install.ps1 | iex"</span>
+<span class="c-muted"># Close and reopen terminal as Admin, then:</span>
+<span class="c-teal">uv</span> --version
+<span class="c-muted"># Expected: uv 0.x.x</span></pre>
+      </div>
+      <div class="note-box tip">
+        <span class="icon">💡</span>
+        <span><strong>Never use pip again after this.</strong> UV does everything pip does, but faster and safer. Always use <code>uv add</code> instead of <code>pip install</code>.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 5: Ollama -->
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#ff6b6b20;color:#ff6b6b">05</div>
+      <div class="step-info">
+        <div class="step-title">Verify Ollama + pull models</div>
+        <div class="step-desc">You said Ollama is installed — verify and pull required models</div>
+      </div>
+      <div class="step-time">~10 min</div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where win">🪟 PowerShell</span>
+      <div class="code-wrap">
+        <div class="code-label">verify ollama</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">ollama</span> --version
+<span class="c-muted"># Expected: ollama version 0.x.x</span>
+
+<span class="c-teal">ollama</span> list
+<span class="c-muted"># See what models you have</span></pre>
+      </div>
+      <div class="code-wrap">
+        <div class="code-label">pull required models (run both)</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">ollama</span> pull llama3
+<span class="c-muted"># Downloads ~4.7GB — wait for it</span>
+
+<span class="c-teal">ollama</span> pull nomic-embed-text
+<span class="c-muted"># Downloads ~274MB — for RAG embeddings</span></pre>
+      </div>
+      <div class="code-wrap">
+        <div class="code-label">test ollama works</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">ollama</span> run llama3 <span class="c-green">"say: WORKING"</span>
+<span class="c-muted"># Must reply with WORKING or similar</span>
+<span class="c-muted"># Press Ctrl+D to exit</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 6: Docker -->
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#4fc3f720;color:#4fc3f7">06</div>
+      <div class="step-info">
+        <div class="step-title">Install Docker Desktop</div>
+        <div class="step-desc">Runs PostgreSQL + Qdrant + n8n in containers</div>
+      </div>
+      <div class="step-time">~10 min</div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where win">🪟 PowerShell Admin</span>
+      <div class="code-wrap">
+        <div class="code-label">install docker</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">winget</span> install Docker.DockerDesktop
+<span class="c-muted"># Restart PC when asked</span>
+<span class="c-muted"># After restart, open Docker Desktop from taskbar</span>
+<span class="c-muted"># Wait for it to say "Docker is running"</span>
+<span class="c-muted"># Then verify:</span>
+<span class="c-teal">docker</span> --version
+<span class="c-teal">docker</span> compose version</pre>
+      </div>
+      <div class="note-box warn">
+        <span class="icon">⚠️</span>
+        <span>Docker Desktop must be <strong>running</strong> in the background (tray icon) before you use any docker commands.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 7: WSL2 -->
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#69ff8720;color:#69ff87">07</div>
+      <div class="step-info">
+        <div class="step-title">Install WSL2 — Linux inside Windows</div>
+        <div class="step-desc">Learn Linux now, use it for servers + hardware later. Zero risk.</div>
+      </div>
+      <div class="step-time">~5 min + reboot</div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where win">🪟 PowerShell Admin</span>
+      <div class="code-wrap">
+        <div class="code-label">install wsl2</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">wsl</span> --install
+<span class="c-muted"># PC restarts. After restart:</span>
+<span class="c-muted"># Ubuntu terminal opens automatically</span>
+<span class="c-muted"># Set a username (e.g. yourname) and password</span>
+<span class="c-muted"># Remember this password — you'll use it often</span>
+
+<span class="c-muted"># Verify after setup:</span>
+<span class="c-teal">wsl</span> --list --verbose
+<span class="c-muted"># Shows: Ubuntu   Running   2</span></pre>
+      </div>
+      <div class="code-wrap">
+        <div class="code-label">first linux commands to practice daily</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-muted"># Open Ubuntu from Start Menu, then:</span>
+<span class="c-teal">pwd</span>                 <span class="c-muted"># show current folder</span>
+<span class="c-teal">ls</span> -la              <span class="c-muted"># list all files</span>
+<span class="c-teal">cd</span> ~                <span class="c-muted"># go to home folder</span>
+<span class="c-teal">mkdir</span> projects      <span class="c-muted"># create folder</span>
+<span class="c-teal">sudo apt update</span>     <span class="c-muted"># update Ubuntu packages</span>
+<span class="c-teal">sudo apt upgrade</span> -y <span class="c-muted"># upgrade all packages</span></pre>
+      </div>
+      <div class="note-box tip">
+        <span class="icon">💡</span>
+        <span>In VS Code, press <strong>Ctrl+Shift+P</strong> → type "WSL" → "Open Folder in WSL" to edit Linux files from VS Code.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 8: NSSM -->
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#ff79c620;color:#ff79c6">08</div>
+      <div class="step-info">
+        <div class="step-title">Download NSSM — Windows service manager</div>
+        <div class="step-desc">Makes your app auto-start on boot like a real Windows service</div>
+      </div>
+      <div class="step-time">~2 min</div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where win">🪟 PowerShell Admin</span>
+      <div class="code-wrap">
+        <div class="code-label">download nssm</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-muted"># Download NSSM</span>
+<span class="c-teal">Invoke-WebRequest</span> -Uri <span class="c-green">"https://nssm.cc/release/nssm-2.24.zip"</span> `
+  -OutFile <span class="c-green">"$env:TEMP\nssm.zip"</span>
+
+<span class="c-muted"># Extract</span>
+<span class="c-teal">Expand-Archive</span> <span class="c-green">"$env:TEMP\nssm.zip"</span> -DestinationPath <span class="c-green">"$env:TEMP\nssm"</span>
+
+<span class="c-muted"># Copy to your tools folder</span>
+<span class="c-teal">New-Item</span> -ItemType Directory -Force <span class="c-green">"C:\MyAIProduct\tools"</span>
+<span class="c-teal">Copy-Item</span> <span class="c-green">"$env:TEMP\nssm\nssm-2.24\win64\nssm.exe"</span> `
+  <span class="c-green">"C:\MyAIProduct\tools\nssm.exe"</span>
+
+<span class="c-muted"># Verify:</span>
+<span class="c-teal">C:\MyAIProduct\tools\nssm.exe</span> version</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 1 checklist -->
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#00d4aa20;color:#00d4aa">✓</div>
+      <div class="step-info">
+        <div class="step-title">Day 1 Checklist — verify before moving on</div>
+        <div class="step-desc">Run each command — all must succeed</div>
+      </div>
+      <div class="step-time">~5 min</div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <div class="code-wrap">
+        <div class="code-label">run all checks</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">git</span> --version          <span class="c-muted"># git version 2.x</span>
+<span class="c-teal">code</span> --version         <span class="c-muted"># 1.x.x</span>
+<span class="c-teal">python</span> --version       <span class="c-muted"># Python 3.12.x</span>
+<span class="c-teal">uv</span> --version           <span class="c-muted"># uv 0.x.x</span>
+<span class="c-teal">ollama</span> --version       <span class="c-muted"># ollama version 0.x.x</span>
+<span class="c-teal">docker</span> --version       <span class="c-muted"># Docker version 26.x</span>
+<span class="c-teal">docker</span> compose version <span class="c-muted"># Docker Compose version 2.x</span>
+<span class="c-teal">wsl</span> --list --verbose   <span class="c-muted"># Ubuntu Running 2</span>
+<span class="c-teal">C:\MyAIProduct\tools\nssm.exe</span> version <span class="c-muted"># NSSM 2.24</span></pre>
+      </div>
+      <ul class="checklist">
+        <li><span class="check">□</span> git works</li>
+        <li><span class="check">□</span> VS Code works + all extensions installed</li>
+        <li><span class="check">□</span> Python 3.12 works</li>
+        <li><span class="check">□</span> UV works</li>
+        <li><span class="check">□</span> Ollama works + llama3 + nomic-embed-text downloaded</li>
+        <li><span class="check">□</span> Docker Desktop running</li>
+        <li><span class="check">□</span> WSL2 Ubuntu installed</li>
+        <li><span class="check">□</span> NSSM in C:\MyAIProduct\tools\</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 1 — FOLDER & FILES
+══════════════════════════════════════════ -->
+<div class="section" id="s1">
+  <div class="phase-header">
+    <div class="phase-icon" style="background:#ffb34720">📁</div>
+    <div>
+      <h2>Folder Structure & All Files</h2>
+      <p>Create this once — never change the layout</p>
+    </div>
+  </div>
+
+  <div class="step open">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#ffb34720;color:#ffb347">01</div>
+      <div class="step-info">
+        <div class="step-title">Create all folders at once</div>
+        <div class="step-desc">PowerShell · one command · creates everything</div>
+      </div>
+      <div class="step-time">~1 min</div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where win">🪟 PowerShell Admin</span>
+      <div class="code-wrap">
+        <div class="code-label">create folders</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">@</span>(
+  <span class="c-green">"C:\MyAIProduct\app\routers"</span>,
+  <span class="c-green">"C:\MyAIProduct\app\services"</span>,
+  <span class="c-green">"C:\MyAIProduct\app\db"</span>,
+  <span class="c-green">"C:\MyAIProduct\app\crypto"</span>,
+  <span class="c-green">"C:\MyAIProduct\core"</span>,
+  <span class="c-green">"C:\MyAIProduct\config"</span>,
+  <span class="c-green">"C:\MyAIProduct\data\postgres"</span>,
+  <span class="c-green">"C:\MyAIProduct\data\qdrant"</span>,
+  <span class="c-green">"C:\MyAIProduct\data\n8n"</span>,
+  <span class="c-green">"C:\MyAIProduct\logs"</span>,
+  <span class="c-green">"C:\MyAIProduct\backups"</span>,
+  <span class="c-green">"C:\MyAIProduct\tools"</span>,
+  <span class="c-green">"C:\MyAIProduct\tests"</span>,
+  <span class="c-green">"C:\MyAIProduct\workflows"</span>
+) | <span class="c-teal">ForEach-Object</span> { <span class="c-teal">New-Item</span> -ItemType Directory -Force $_ }
+<span class="c-teal">Write-Host</span> <span class="c-green">"All folders created"</span> -ForegroundColor Green</pre>
+      </div>
+      <div class="tree">
+<span class="c-teal">C:\MyAIProduct\</span>
+├── <span class="c-green">app\</span>                 ← all Python code lives here
+│   ├── <span class="c-amber">routers\</span>         ← API endpoints (configs, rag, logs)
+│   ├── <span class="c-amber">services\</span>        ← ollama, qdrant, scheduler
+│   ├── <span class="c-amber">db\</span>              ← database connection + queries
+│   └── <span class="c-amber">crypto\</span>          ← encryption / decryption
+├── <span class="c-green">core\</span>                ← docker-compose.yml + start.bat
+├── <span class="c-green">config\</span>              ← .env (never commit this)
+├── <span class="c-green">data\</span>                ← all database files (never delete)
+│   ├── postgres\
+│   ├── qdrant\
+│   └── n8n\
+├── <span class="c-green">logs\</span>                ← app logs
+├── <span class="c-green">backups\</span>             ← encrypted daily backups
+├── <span class="c-green">tools\</span>               ← nssm.exe
+├── <span class="c-green">tests\</span>               ← all test files
+├── <span class="c-green">workflows\</span>           ← n8n workflow JSON exports
+├── pyproject.toml       ← UV manages this
+└── uv.lock              ← exact package versions (commit this!)</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#ffb34720;color:#ffb347">02</div>
+      <div class="step-info">
+        <div class="step-title">Create config/.env</div>
+        <div class="step-desc">All secrets in one file — never commit to Git</div>
+      </div>
+      <div class="step-time">~2 min</div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where file">📄 File: C:\MyAIProduct\config\.env</span>
+      <div class="note-box warn">
+        <span class="icon">⚠️</span>
+        <span>Open VS Code, create this file manually. <strong>Never paste passwords in terminal history.</strong></span>
+      </div>
+      <div class="code-wrap">
+        <div class="code-label">config/.env</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-muted"># Database</span>
+POSTGRES_DB=myaiproduct
+POSTGRES_USER=appuser
+POSTGRES_PASSWORD=Str0ng!Pass2024#Change
+
+<span class="c-muted"># Services</span>
+OLLAMA_URL=http://127.0.0.1:11434
+QDRANT_URL=http://127.0.0.1:6333
+N8N_URL=http://127.0.0.1:5678
+
+<span class="c-muted"># App</span>
+APP_HOST=127.0.0.1
+APP_PORT=8000
+APP_SECRET=replace-with-64-random-characters-here</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#ffb34720;color:#ffb347">03</div>
+      <div class="step-info">
+        <div class="step-title">Create .gitignore</div>
+        <div class="step-desc">Prevents secrets and data from going to GitHub</div>
+      </div>
+      <div class="step-time">~1 min</div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where file">📄 File: C:\MyAIProduct\.gitignore</span>
+      <div class="code-wrap">
+        <div class="code-label">.gitignore</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-muted"># Never commit these</span>
+config/.env
+data/
+logs/
+backups/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+.venv/
+venv/</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#ffb34720;color:#ffb347">04</div>
+      <div class="step-info">
+        <div class="step-title">Init UV + install all packages</div>
+        <div class="step-desc">Creates pyproject.toml and uv.lock — the heart of your project</div>
+      </div>
+      <div class="step-time">~5 min</div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where win">🪟 PowerShell — inside C:\MyAIProduct</span>
+      <div class="code-wrap">
+        <div class="code-label">init uv and install</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">cd</span> C:\MyAIProduct
+<span class="c-teal">uv</span> init .
+
+<span class="c-teal">uv</span> add fastapi <span class="c-green">"uvicorn[standard]"</span> sqlalchemy asyncpg `
+       psycopg2-binary cryptography python-dotenv `
+       passlib bcrypt httpx pydantic loguru `
+       langchain langchain-community qdrant-client `
+       apscheduler alembic
+
+<span class="c-teal">uv</span> add --dev pytest pytest-asyncio httpx
+
+<span class="c-muted"># Verify it worked:</span>
+<span class="c-teal">uv</span> run python -c <span class="c-green">"import fastapi; print('FastAPI OK')"</span>
+<span class="c-teal">uv</span> run python -c <span class="c-green">"import sqlalchemy; print('SQLAlchemy OK')"</span></pre>
+      </div>
+      <div class="note-box tip">
+        <span class="icon">💡</span>
+        <span><code>uv.lock</code> is created automatically. Always commit this file to Git — it ensures every machine gets the exact same package versions.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#ffb34720;color:#ffb347">05</div>
+      <div class="step-info">
+        <div class="step-title">Init Git and first commit</div>
+        <div class="step-desc">Your product is now version-controlled forever</div>
+      </div>
+      <div class="step-time">~3 min</div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where win">🪟 PowerShell</span>
+      <div class="code-wrap">
+        <div class="code-label">git setup</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">cd</span> C:\MyAIProduct
+<span class="c-teal">git</span> init
+<span class="c-teal">git</span> config user.name <span class="c-green">"Your Name"</span>
+<span class="c-teal">git</span> config user.email <span class="c-green">"you@email.com"</span>
+
+<span class="c-teal">git</span> add .
+<span class="c-teal">git</span> commit -m <span class="c-green">"day 1: project scaffold with UV"</span>
+
+<span class="c-muted"># Connect to GitHub (create repo first at github.com/new)</span>
+<span class="c-teal">git</span> remote add origin https://github.com/YOURNAME/my-ai-product.git
+<span class="c-teal">git</span> push -u origin main</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 2 — PYTHON CODE
+══════════════════════════════════════════ -->
+<div class="section" id="s2">
+  <div class="phase-header">
+    <div class="phase-icon" style="background:#9b72ff20">🐍</div>
+    <div>
+      <h2>Python Code — Every File</h2>
+      <p>Copy each file into the exact path shown · Open in VS Code</p>
+    </div>
+  </div>
+
+  <div class="note-box info">
+    <span class="icon">📌</span>
+    <span>Open VS Code: <code>cd C:\MyAIProduct && code .</code> — then create each file at the path shown.</span>
+  </div>
+
+  <div class="step open">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#9b72ff20;color:#9b72ff">F1</div>
+      <div class="step-info">
+        <div class="step-title">app/database.py</div>
+        <div class="step-desc">PostgreSQL async connection — used by every other file</div>
+      </div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where file">📄 C:\MyAIProduct\app\database.py</span>
+      <div class="code-wrap">
+        <div class="code-label">python</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-pink">from</span> sqlalchemy.ext.asyncio <span class="c-pink">import</span> create_async_engine, AsyncSession
+<span class="c-pink">from</span> sqlalchemy.orm <span class="c-pink">import</span> declarative_base, sessionmaker
+<span class="c-pink">from</span> dotenv <span class="c-pink">import</span> load_dotenv
+<span class="c-pink">import</span> os
+
+load_dotenv(<span class="c-green">"config/.env"</span>)
+
+DATABASE_URL = (
+    <span class="c-green">f"postgresql+asyncpg://"</span>
+    <span class="c-green">f"{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}"</span>
+    <span class="c-green">f"@127.0.0.1:5432/{os.getenv('POSTGRES_DB')}"</span>
+)
+
+engine = create_async_engine(DATABASE_URL, pool_size=<span class="c-amber">10</span>, echo=<span class="c-coral">False</span>)
+
+AsyncSessionLocal = sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=<span class="c-coral">False</span>
+)
+
+Base = declarative_base()
+
+<span class="c-pink">async def</span> <span class="c-teal">get_db</span>():
+    <span class="c-pink">async with</span> AsyncSessionLocal() <span class="c-pink">as</span> session:
+        <span class="c-pink">yield</span> session</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#9b72ff20;color:#9b72ff">F2</div>
+      <div class="step-info">
+        <div class="step-title">app/models.py</div>
+        <div class="step-desc">All 4 database tables defined as Python classes</div>
+      </div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where file">📄 C:\MyAIProduct\app\models.py</span>
+      <div class="code-wrap">
+        <div class="code-label">python</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-pink">from</span> sqlalchemy <span class="c-pink">import</span> Column, Integer, BigInteger, String
+<span class="c-pink">from</span> sqlalchemy <span class="c-pink">import</span> Boolean, Text, DateTime, JSON, LargeBinary, func
+<span class="c-pink">from</span> app.database <span class="c-pink">import</span> Base
+
+<span class="c-pink">class</span> <span class="c-teal">Config</span>(Base):
+    __tablename__ = <span class="c-green">"configs"</span>
+    id          = Column(Integer, primary_key=<span class="c-coral">True</span>)
+    customer_id = Column(String, nullable=<span class="c-coral">False</span>)
+    key         = Column(String, nullable=<span class="c-coral">False</span>)
+    value       = Column(LargeBinary)   <span class="c-muted"># AES-256 encrypted</span>
+    created_at  = Column(DateTime(timezone=<span class="c-coral">True</span>), server_default=func.now())
+    updated_at  = Column(DateTime(timezone=<span class="c-coral">True</span>), onupdate=func.now())
+
+<span class="c-pink">class</span> <span class="c-teal">RagChunk</span>(Base):
+    __tablename__ = <span class="c-green">"rag_chunks"</span>
+    id           = Column(Integer, primary_key=<span class="c-coral">True</span>)
+    customer_id  = Column(String, nullable=<span class="c-coral">False</span>)
+    doc_name     = Column(String, nullable=<span class="c-coral">False</span>)
+    chunk_index  = Column(Integer, nullable=<span class="c-coral">False</span>)
+    content      = Column(Text, nullable=<span class="c-coral">False</span>)
+    embedding_id = Column(String)
+    created_at   = Column(DateTime(timezone=<span class="c-coral">True</span>), server_default=func.now())
+
+<span class="c-pink">class</span> <span class="c-teal">License</span>(Base):
+    __tablename__ = <span class="c-green">"licenses"</span>
+    id           = Column(Integer, primary_key=<span class="c-coral">True</span>)
+    license_key  = Column(String, unique=<span class="c-coral">True</span>, nullable=<span class="c-coral">False</span>)
+    machine_id   = Column(String)
+    plan         = Column(String, default=<span class="c-green">"starter"</span>)
+    activated_at = Column(DateTime(timezone=<span class="c-coral">True</span>))
+    expires_at   = Column(DateTime(timezone=<span class="c-coral">True</span>))
+    is_active    = Column(Boolean, default=<span class="c-coral">True</span>)
+    created_at   = Column(DateTime(timezone=<span class="c-coral">True</span>), server_default=func.now())
+
+<span class="c-pink">class</span> <span class="c-teal">UsageLog</span>(Base):
+    __tablename__ = <span class="c-green">"usage_logs"</span>
+    id           = Column(BigInteger, primary_key=<span class="c-coral">True</span>)
+    customer_id  = Column(String, nullable=<span class="c-coral">False</span>)
+    event_type   = Column(String, nullable=<span class="c-coral">False</span>)
+    event_data   = Column(JSON)
+    created_at   = Column(DateTime(timezone=<span class="c-coral">True</span>), server_default=func.now())</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#9b72ff20;color:#9b72ff">F3</div>
+      <div class="step-info">
+        <div class="step-title">app/crypto/encrypt.py</div>
+        <div class="step-desc">AES-256 encryption — all sensitive data encrypted before saving</div>
+      </div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where file">📄 C:\MyAIProduct\app\crypto\encrypt.py</span>
+      <div class="code-wrap">
+        <div class="code-label">python</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-pink">import</span> os, json, subprocess
+<span class="c-pink">from</span> cryptography.hazmat.primitives.ciphers.aead <span class="c-pink">import</span> AESGCM
+<span class="c-pink">from</span> cryptography.hazmat.primitives.kdf.scrypt <span class="c-pink">import</span> Scrypt
+<span class="c-pink">from</span> cryptography.hazmat.backends <span class="c-pink">import</span> default_backend
+
+<span class="c-pink">def</span> <span class="c-teal">get_machine_id</span>() -> str:
+    <span class="c-green">"""Unique ID from this PC's hardware."""</span>
+    result = subprocess.check_output(
+        <span class="c-green">"wmic csproduct get uuid /value"</span>,
+        shell=<span class="c-coral">True</span>, encoding=<span class="c-green">"utf-8"</span>
+    )
+    <span class="c-pink">return</span> result.strip().replace(<span class="c-green">"UUID="</span>, <span class="c-green">""</span>)
+
+<span class="c-pink">def</span> <span class="c-teal">derive_key</span>(machine_id: str) -> bytes:
+    <span class="c-green">"""Derive AES-256 key from hardware ID."""</span>
+    kdf = Scrypt(
+        salt=<span class="c-green">b"myaiproduct-salt-v1"</span>,
+        length=<span class="c-amber">32</span>, n=<span class="c-amber">2**14</span>, r=<span class="c-amber">8</span>, p=<span class="c-amber">1</span>,
+        backend=default_backend()
+    )
+    <span class="c-pink">return</span> kdf.derive(machine_id.encode())
+
+<span class="c-muted"># Derived once at startup</span>
+_KEY = derive_key(get_machine_id())
+
+<span class="c-pink">def</span> <span class="c-teal">encrypt</span>(data: dict) -> bytes:
+    aesgcm = AESGCM(_KEY)
+    iv = os.urandom(<span class="c-amber">12</span>)
+    ct = aesgcm.encrypt(iv, json.dumps(data).encode(), <span class="c-coral">None</span>)
+    <span class="c-pink">return</span> iv + ct
+
+<span class="c-pink">def</span> <span class="c-teal">decrypt</span>(payload: bytes) -> dict:
+    aesgcm = AESGCM(_KEY)
+    iv, ct = payload[:<span class="c-amber">12</span>], payload[<span class="c-amber">12</span>:]
+    plain = aesgcm.decrypt(iv, ct, <span class="c-coral">None</span>)
+    <span class="c-pink">return</span> json.loads(plain.decode())</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#9b72ff20;color:#9b72ff">F4</div>
+      <div class="step-info">
+        <div class="step-title">app/services/ollama.py</div>
+        <div class="step-desc">Call Ollama LLM and embedding model from Python</div>
+      </div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where file">📄 C:\MyAIProduct\app\services\ollama.py</span>
+      <div class="code-wrap">
+        <div class="code-label">python</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-pink">import</span> httpx, os
+<span class="c-pink">from</span> loguru <span class="c-pink">import</span> logger
+<span class="c-pink">from</span> dotenv <span class="c-pink">import</span> load_dotenv
+
+load_dotenv(<span class="c-green">"config/.env"</span>)
+OLLAMA = os.getenv(<span class="c-green">"OLLAMA_URL"</span>, <span class="c-green">"http://127.0.0.1:11434"</span>)
+
+<span class="c-pink">async def</span> <span class="c-teal">chat</span>(prompt: str, model: str = <span class="c-green">"llama3"</span>,
+              system: str = <span class="c-coral">None</span>) -> str:
+    messages = []
+    <span class="c-pink">if</span> system:
+        messages.append({<span class="c-green">"role"</span>: <span class="c-green">"system"</span>, <span class="c-green">"content"</span>: system})
+    messages.append({<span class="c-green">"role"</span>: <span class="c-green">"user"</span>, <span class="c-green">"content"</span>: prompt})
+
+    <span class="c-pink">async with</span> httpx.AsyncClient(timeout=<span class="c-amber">120</span>) <span class="c-pink">as</span> client:
+        r = <span class="c-pink">await</span> client.post(<span class="c-green">f"{OLLAMA}/api/chat"</span>,
+            json={<span class="c-green">"model"</span>: model, <span class="c-green">"messages"</span>: messages, <span class="c-green">"stream"</span>: <span class="c-coral">False</span>})
+        r.raise_for_status()
+        <span class="c-pink">return</span> r.json()[<span class="c-green">"message"</span>][<span class="c-green">"content"</span>]
+
+<span class="c-pink">async def</span> <span class="c-teal">embed</span>(text: str) -> list[float]:
+    <span class="c-pink">async with</span> httpx.AsyncClient(timeout=<span class="c-amber">60</span>) <span class="c-pink">as</span> client:
+        r = <span class="c-pink">await</span> client.post(<span class="c-green">f"{OLLAMA}/api/embeddings"</span>,
+            json={<span class="c-green">"model"</span>: <span class="c-green">"nomic-embed-text"</span>, <span class="c-green">"prompt"</span>: text})
+        r.raise_for_status()
+        <span class="c-pink">return</span> r.json()[<span class="c-green">"embedding"</span>]</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#9b72ff20;color:#9b72ff">F5</div>
+      <div class="step-info">
+        <div class="step-title">app/main.py</div>
+        <div class="step-desc">Entry point — starts everything, creates DB tables</div>
+      </div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where file">📄 C:\MyAIProduct\app\main.py</span>
+      <div class="code-wrap">
+        <div class="code-label">python</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-pink">from</span> fastapi <span class="c-pink">import</span> FastAPI
+<span class="c-pink">from</span> contextlib <span class="c-pink">import</span> asynccontextmanager
+<span class="c-pink">from</span> loguru <span class="c-pink">import</span> logger
+<span class="c-pink">import</span> sys, os
+<span class="c-pink">from</span> app.database <span class="c-pink">import</span> engine, Base
+<span class="c-pink">from</span> app <span class="c-pink">import</span> models  <span class="c-muted"># import so Base knows all tables</span>
+
+<span class="c-muted"># Log to file + terminal</span>
+logger.remove()
+logger.add(sys.stdout, level=<span class="c-green">"INFO"</span>)
+logger.add(<span class="c-green">"logs/app.log"</span>, rotation=<span class="c-green">"10 MB"</span>,
+           retention=<span class="c-green">"7 days"</span>, level=<span class="c-green">"INFO"</span>)
+
+<span class="c-pink">@asynccontextmanager</span>
+<span class="c-pink">async def</span> <span class="c-teal">lifespan</span>(app: FastAPI):
+    <span class="c-muted"># Create all DB tables on startup</span>
+    <span class="c-pink">async with</span> engine.begin() <span class="c-pink">as</span> conn:
+        <span class="c-pink">await</span> conn.run_sync(Base.metadata.create_all)
+    logger.info(<span class="c-green">"✅ Database tables ready"</span>)
+    logger.info(<span class="c-green">"✅ MyAIProduct API started"</span>)
+    <span class="c-pink">yield</span>
+    <span class="c-pink">await</span> engine.dispose()
+    logger.info(<span class="c-green">"API shutdown"</span>)
+
+app = FastAPI(
+    title=<span class="c-green">"MyAIProduct API"</span>,
+    version=<span class="c-green">"1.0.0"</span>,
+    lifespan=lifespan
+)
+
+<span class="c-pink">@app</span>.get(<span class="c-green">"/health"</span>)
+<span class="c-pink">async def</span> <span class="c-teal">health</span>():
+    <span class="c-pink">return</span> {<span class="c-green">"status"</span>: <span class="c-green">"ok"</span>, <span class="c-green">"version"</span>: <span class="c-green">"1.0.0"</span>}
+
+<span class="c-pink">@app</span>.post(<span class="c-green">"/chat"</span>)
+<span class="c-pink">async def</span> <span class="c-teal">chat</span>(body: dict):
+    <span class="c-pink">from</span> app.services.ollama <span class="c-pink">import</span> chat <span class="c-pink">as</span> ollama_chat
+    reply = <span class="c-pink">await</span> ollama_chat(body.get(<span class="c-green">"message"</span>, <span class="c-green">""</span>))
+    <span class="c-pink">return</span> {<span class="c-green">"reply"</span>: reply}</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 3 — DOCKER
+══════════════════════════════════════════ -->
+<div class="section" id="s3">
+  <div class="phase-header">
+    <div class="phase-icon" style="background:#4fc3f720">🐳</div>
+    <div>
+      <h2>Docker — PostgreSQL + Qdrant + n8n</h2>
+      <p>One file runs all 3 services together</p>
+    </div>
+  </div>
+
+  <div class="step open">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#4fc3f720;color:#4fc3f7">01</div>
+      <div class="step-info">
+        <div class="step-title">core/docker-compose.yml</div>
+        <div class="step-desc">The main infrastructure file — all 3 services</div>
+      </div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where file">📄 C:\MyAIProduct\core\docker-compose.yml</span>
+      <div class="code-wrap">
+        <div class="code-label">yaml</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">version</span>: <span class="c-green">"3.8"</span>
+<span class="c-teal">services</span>:
+
+  <span class="c-teal">postgres</span>:
+    image: postgres:16-alpine
+    restart: always
+    ports:
+      - <span class="c-green">"127.0.0.1:5432:5432"</span>   <span class="c-muted"># localhost only</span>
+    environment:
+      POSTGRES_DB:       <span class="c-amber">${POSTGRES_DB}</span>
+      POSTGRES_USER:     <span class="c-amber">${POSTGRES_USER}</span>
+      POSTGRES_PASSWORD: <span class="c-amber">${POSTGRES_PASSWORD}</span>
+    volumes:
+      - <span class="c-green">../data/postgres:/var/lib/postgresql/data</span>
+    healthcheck:
+      test: [<span class="c-green">"CMD-SHELL"</span>, <span class="c-green">"pg_isready -U ${POSTGRES_USER}"</span>]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  <span class="c-teal">qdrant</span>:
+    image: qdrant/qdrant:latest
+    restart: always
+    ports:
+      - <span class="c-green">"127.0.0.1:6333:6333"</span>
+    volumes:
+      - <span class="c-green">../data/qdrant:/qdrant/storage</span>
+
+  <span class="c-teal">n8n</span>:
+    image: n8nio/n8n:latest
+    restart: always
+    ports:
+      - <span class="c-green">"127.0.0.1:5678:5678"</span>
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - <span class="c-amber">DB_POSTGRESDB_DATABASE=${POSTGRES_DB}</span>
+      - <span class="c-amber">DB_POSTGRESDB_USER=${POSTGRES_USER}</span>
+      - <span class="c-amber">DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}</span>
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=admin123
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - <span class="c-green">../data/n8n:/home/node/.n8n</span>
+    extra_hosts:
+      - <span class="c-green">"host.docker.internal:host-gateway"</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#4fc3f720;color:#4fc3f7">02</div>
+      <div class="step-info">
+        <div class="step-title">Start all services</div>
+        <div class="step-desc">Run this every time — or let NSSM auto-start it</div>
+      </div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where win">🪟 PowerShell — inside C:\MyAIProduct\core</span>
+      <div class="code-wrap">
+        <div class="code-label">start services</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">cd</span> C:\MyAIProduct\core
+
+<span class="c-muted"># Start all 3 services (detached — runs in background)</span>
+<span class="c-teal">docker</span> compose --env-file ..\config\.env up -d
+
+<span class="c-muted"># Check status — all must say "running"</span>
+<span class="c-teal">docker</span> compose ps
+
+<span class="c-muted"># Watch logs in real time (Ctrl+C to stop watching)</span>
+<span class="c-teal">docker</span> compose logs -f
+
+<span class="c-muted"># Stop all services</span>
+<span class="c-teal">docker</span> compose down
+
+<span class="c-muted"># Restart one service only</span>
+<span class="c-teal">docker</span> compose restart postgres</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#4fc3f720;color:#4fc3f7">03</div>
+      <div class="step-info">
+        <div class="step-title">core/start.bat — auto-start script</div>
+        <div class="step-desc">NSSM runs this on Windows boot</div>
+      </div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where file">📄 C:\MyAIProduct\core\start.bat</span>
+      <div class="code-wrap">
+        <div class="code-label">batch</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-amber">@echo off</span>
+<span class="c-teal">cd</span> /d C:\MyAIProduct\core
+
+<span class="c-muted">:: Start Docker services</span>
+<span class="c-teal">docker</span> compose --env-file ..\config\.env up -d
+
+<span class="c-muted">:: Wait for Postgres to be ready</span>
+<span class="c-teal">timeout</span> /t 20 /nobreak > nul
+
+<span class="c-muted">:: Start Python API</span>
+<span class="c-teal">cd</span> /d C:\MyAIProduct
+<span class="c-teal">uv</span> run uvicorn app.main:app --host 127.0.0.1 --port 8000</pre>
+      </div>
+      <div class="code-wrap">
+        <div class="code-label">register with nssm (run once as Admin)</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-amber">$nssm</span> = <span class="c-green">"C:\MyAIProduct\tools\nssm.exe"</span>
+<span class="c-amber">$bat</span>  = <span class="c-green">"C:\MyAIProduct\core\start.bat"</span>
+
+& <span class="c-amber">$nssm</span> install MyAIProduct <span class="c-amber">$bat</span>
+& <span class="c-amber">$nssm</span> set MyAIProduct AppDirectory <span class="c-green">"C:\MyAIProduct\core"</span>
+& <span class="c-amber">$nssm</span> set MyAIProduct Start SERVICE_AUTO_START
+& <span class="c-amber">$nssm</span> set MyAIProduct AppRestartDelay <span class="c-amber">5000</span>
+& <span class="c-amber">$nssm</span> set MyAIProduct AppStdout <span class="c-green">"C:\MyAIProduct\logs\service.log"</span>
+& <span class="c-amber">$nssm</span> set MyAIProduct AppStderr <span class="c-green">"C:\MyAIProduct\logs\error.log"</span>
+
+net start MyAIProduct
+<span class="c-teal">Write-Host</span> <span class="c-green">"Service started and will auto-start on every boot"</span></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 4 — TEST & RUN
+══════════════════════════════════════════ -->
+<div class="section" id="s4">
+  <div class="phase-header">
+    <div class="phase-icon" style="background:#ffb34720">🧪</div>
+    <div>
+      <h2>Test & Run — Verify Everything Works</h2>
+      <p>Run in this exact order every time you start a new day</p>
+    </div>
+  </div>
+
+  <div class="step open">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#ffb34720;color:#ffb347">01</div>
+      <div class="step-info">
+        <div class="step-title">Daily startup sequence</div>
+        <div class="step-desc">Run these 3 commands every morning before building</div>
+      </div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where win">🪟 PowerShell — Terminal 1</span>
+      <div class="code-wrap">
+        <div class="code-label">step 1: start docker services</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">cd</span> C:\MyAIProduct\core
+<span class="c-teal">docker</span> compose --env-file ..\config\.env up -d
+<span class="c-teal">docker</span> compose ps
+<span class="c-muted"># All 3 must say: running</span></pre>
+      </div>
+      <div class="code-wrap">
+        <div class="code-label">step 2: start python api (Terminal 2 — keep open)</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">cd</span> C:\MyAIProduct
+<span class="c-teal">uv</span> run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+<span class="c-muted"># --reload = auto-restarts when you save a file</span>
+<span class="c-muted"># Keep this terminal open while you work</span></pre>
+      </div>
+      <div class="code-wrap">
+        <div class="code-label">step 3: run tests (Terminal 3)</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre"><span class="c-teal">cd</span> C:\MyAIProduct
+<span class="c-teal">uv</span> run pytest tests/ -v
+<span class="c-muted"># All must pass before you start coding</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#ffb34720;color:#ffb347">02</div>
+      <div class="step-info">
+        <div class="step-title">tests/test_all.py — full test suite</div>
+        <div class="step-desc">Tests every service — run this before every commit</div>
+      </div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where file">📄 C:\MyAIProduct\tests\test_all.py</span>
+      <div class="code-wrap">
+        <div class="code-label">python</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-pink">import</span> httpx, pytest, psycopg2, os
+<span class="c-pink">from</span> dotenv <span class="c-pink">import</span> load_dotenv
+load_dotenv(<span class="c-green">"config/.env"</span>)
+
+BASE = <span class="c-green">"http://127.0.0.1:8000"</span>
+
+<span class="c-pink">def</span> <span class="c-teal">test_api_health</span>():
+    r = httpx.get(<span class="c-green">f"{BASE}/health"</span>)
+    <span class="c-pink">assert</span> r.status_code == <span class="c-amber">200</span>
+    <span class="c-pink">assert</span> r.json()[<span class="c-green">"status"</span>] == <span class="c-green">"ok"</span>
+    <span class="c-pink">print</span>(<span class="c-green">"✅ FastAPI health OK"</span>)
+
+<span class="c-pink">def</span> <span class="c-teal">test_ollama_reachable</span>():
+    r = httpx.get(<span class="c-green">"http://127.0.0.1:11434/api/tags"</span>, timeout=<span class="c-amber">10</span>)
+    <span class="c-pink">assert</span> r.status_code == <span class="c-amber">200</span>
+    <span class="c-pink">print</span>(<span class="c-green">"✅ Ollama reachable"</span>)
+
+<span class="c-pink">def</span> <span class="c-teal">test_ollama_chat</span>():
+    r = httpx.post(<span class="c-green">"http://127.0.0.1:11434/api/chat"</span>, json={
+        <span class="c-green">"model"</span>: <span class="c-green">"llama3"</span>,
+        <span class="c-green">"messages"</span>: [{<span class="c-green">"role"</span>: <span class="c-green">"user"</span>,
+                      <span class="c-green">"content"</span>: <span class="c-green">"Reply only: WORKING"</span>}],
+        <span class="c-green">"stream"</span>: <span class="c-coral">False</span>
+    }, timeout=<span class="c-amber">60</span>)
+    <span class="c-pink">assert</span> r.status_code == <span class="c-amber">200</span>
+    <span class="c-pink">print</span>(<span class="c-green">"✅ Ollama chat OK:", r.json()["message"]["content"][:30]</span>)
+
+<span class="c-pink">def</span> <span class="c-teal">test_postgres</span>():
+    conn = psycopg2.connect(
+        host=<span class="c-green">"127.0.0.1"</span>, port=<span class="c-amber">5432</span>,
+        dbname=os.getenv(<span class="c-green">"POSTGRES_DB"</span>),
+        user=os.getenv(<span class="c-green">"POSTGRES_USER"</span>),
+        password=os.getenv(<span class="c-green">"POSTGRES_PASSWORD"</span>)
+    )
+    cur = conn.cursor()
+    cur.execute(<span class="c-green">"SELECT 1"</span>)
+    conn.close()
+    <span class="c-pink">print</span>(<span class="c-green">"✅ PostgreSQL OK"</span>)
+
+<span class="c-pink">def</span> <span class="c-teal">test_qdrant</span>():
+    r = httpx.get(<span class="c-green">"http://127.0.0.1:6333/healthz"</span>)
+    <span class="c-pink">assert</span> r.status_code == <span class="c-amber">200</span>
+    <span class="c-pink">print</span>(<span class="c-green">"✅ Qdrant OK"</span>)
+
+<span class="c-pink">def</span> <span class="c-teal">test_n8n</span>():
+    r = httpx.get(<span class="c-green">"http://127.0.0.1:5678/healthz"</span>)
+    <span class="c-pink">assert</span> r.status_code == <span class="c-amber">200</span>
+    <span class="c-pink">print</span>(<span class="c-green">"✅ n8n OK"</span>)
+
+<span class="c-pink">def</span> <span class="c-teal">test_api_chat</span>():
+    r = httpx.post(<span class="c-green">f"{BASE}/chat"</span>,
+        json={<span class="c-green">"message"</span>: <span class="c-green">"say hi"</span>}, timeout=<span class="c-amber">60</span>)
+    <span class="c-pink">assert</span> r.status_code == <span class="c-amber">200</span>
+    <span class="c-pink">assert</span> <span class="c-green">"reply"</span> <span class="c-pink">in</span> r.json()
+    <span class="c-pink">print</span>(<span class="c-green">"✅ /chat endpoint OK"</span>)</pre>
+      </div>
+      <div class="code-wrap">
+        <div class="code-label">run tests</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">uv</span> run pytest tests/test_all.py -v --tb=short
+<span class="c-muted"># Expected output:</span>
+<span class="c-green">PASSED tests/test_all.py::test_api_health
+PASSED tests/test_all.py::test_ollama_reachable
+PASSED tests/test_all.py::test_ollama_chat
+PASSED tests/test_all.py::test_postgres
+PASSED tests/test_all.py::test_qdrant
+PASSED tests/test_all.py::test_n8n
+PASSED tests/test_all.py::test_api_chat
+7 passed in 14.xx s</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#ffb34720;color:#ffb347">03</div>
+      <div class="step-info">
+        <div class="step-title">URLs to open in browser</div>
+        <div class="step-desc">Every service has a web UI</div>
+      </div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <div class="note-box info">
+        <span class="icon">🌐</span>
+        <span>Open these in your browser after everything is running:</span>
+      </div>
+      <ul class="checklist">
+        <li><span class="check">→</span><strong>http://127.0.0.1:8000/docs</strong> — Your FastAPI swagger UI — test every endpoint</li>
+        <li><span class="check">→</span><strong>http://127.0.0.1:5678</strong> — n8n workflow builder (login: admin / admin123)</li>
+        <li><span class="check">→</span><strong>http://127.0.0.1:6333/dashboard</strong> — Qdrant vector DB dashboard</li>
+        <li><span class="check">→</span><strong>http://127.0.0.1:8000/health</strong> — quick health check</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 5 — LINUX AFTER
+══════════════════════════════════════════ -->
+<div class="section" id="s5">
+  <div class="phase-header">
+    <div class="phase-icon" style="background:#69ff8720">🐧</div>
+    <div>
+      <h2>Linux — When and How to Switch</h2>
+      <p>Stay on Windows now · Use WSL2 to learn Linux daily · Switch fully later</p>
+    </div>
+  </div>
+
+  <div class="note-box tip">
+    <span class="icon">💡</span>
+    <span><strong>You do NOT switch away from Windows yet.</strong> Your product is for Windows customers. You learn Linux in WSL2 every day so you're ready for Phase 4 (VPS server) and Phase 6 (Raspberry Pi hardware).</span>
+  </div>
+
+  <div class="step open">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#69ff8720;color:#69ff87">L1</div>
+      <div class="step-info">
+        <div class="step-title">WSL2 daily practice — 15 min every day</div>
+        <div class="step-desc">Build Linux muscle memory while staying on Windows</div>
+      </div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <span class="where term">🐧 Ubuntu Terminal (WSL2)</span>
+      <div class="code-wrap">
+        <div class="code-label">week 1-2: navigation basics</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre><span class="c-teal">pwd</span>               <span class="c-muted"># where am I?</span>
+<span class="c-teal">ls</span> -la            <span class="c-muted"># list files with details</span>
+<span class="c-teal">cd</span> ~              <span class="c-muted"># go home</span>
+<span class="c-teal">mkdir</span> -p projects/test  <span class="c-muted"># create nested folders</span>
+<span class="c-teal">touch</span> file.txt    <span class="c-muted"># create empty file</span>
+<span class="c-teal">cat</span> file.txt      <span class="c-muted"># read file</span>
+<span class="c-teal">nano</span> file.txt     <span class="c-muted"># edit file (Ctrl+X to exit)</span>
+<span class="c-teal">cp</span> file.txt copy.txt    <span class="c-muted"># copy file</span>
+<span class="c-teal">mv</span> copy.txt new.txt     <span class="c-muted"># rename/move</span>
+<span class="c-teal">rm</span> new.txt        <span class="c-muted"># delete file</span></pre>
+      </div>
+      <div class="code-wrap">
+        <div class="code-label">week 3-4: install tools in linux</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre"><span class="c-teal">sudo apt update && sudo apt upgrade</span> -y
+<span class="c-teal">sudo apt install</span> -y python3 python3-pip git curl wget
+<span class="c-muted"># Install UV in Linux too:</span>
+<span class="c-teal">curl</span> -LsSf https://astral.sh/uv/install.sh | sh
+<span class="c-muted"># Install Docker in WSL2:</span>
+<span class="c-teal">curl</span> -fsSL https://get.docker.com | sh</pre>
+      </div>
+      <div class="code-wrap">
+        <div class="code-label">access your windows files from linux</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre"><span class="c-muted"># Your Windows C: drive is at:</span>
+<span class="c-teal">ls</span> /mnt/c/MyAIProduct
+<span class="c-muted"># You can edit Windows files from Linux!</span>
+<span class="c-teal">cd</span> /mnt/c/MyAIProduct
+<span class="c-teal">uv</span> run pytest tests/ -v</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#69ff8720;color:#69ff87">L2</div>
+      <div class="step-info">
+        <div class="step-title">When to fully switch to Linux</div>
+        <div class="step-desc">Clear milestones — don't switch early</div>
+      </div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <ul class="checklist">
+        <li><span class="check-pending">□</span><strong>Phase 4 (Month 7):</strong> Deploy your product to a Linux VPS (Ubuntu). Your server runs Linux. Your dev machine stays Windows.</li>
+        <li><span class="check-pending">□</span><strong>Phase 6 (Month 15):</strong> Raspberry Pi runs Linux. You SSH into it from Windows. No need to switch your main machine.</li>
+        <li><span class="check-pending">□</span><strong>Optional (any time):</strong> If you want to develop on Linux — install Ubuntu as dual boot alongside Windows. Keep Windows for customer testing.</li>
+      </ul>
+      <div class="note-box tip">
+        <span class="icon">💡</span>
+        <span>Most professional developers use macOS or Linux for development but test on Windows when their product targets Windows users. You are doing the right thing.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#69ff8720;color:#69ff87">L3</div>
+      <div class="step-info">
+        <div class="step-title">Linux equivalent of every Windows command</div>
+        <div class="step-desc">Reference — same action, different command</div>
+      </div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <div class="code-wrap">
+        <div class="code-label">windows → linux translation</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre"><span class="c-muted"># Windows PowerShell    →    Linux Bash</span>
+<span class="c-teal">Get-ChildItem</span>          →    ls -la
+<span class="c-teal">Set-Location</span>           →    cd
+<span class="c-teal">New-Item</span> -Type Dir     →    mkdir
+<span class="c-teal">Copy-Item</span>              →    cp
+<span class="c-teal">Remove-Item</span>            →    rm
+<span class="c-teal">Get-Content</span>            →    cat
+<span class="c-teal">net start</span> MyService    →    systemctl start myservice
+<span class="c-teal">nssm install</span>           →    systemctl enable (via .service file)
+<span class="c-teal">winget install</span>         →    sudo apt install
+<span class="c-teal">$env:VAR</span>               →    $VAR or export VAR=value
+<span class="c-teal">.\script.bat</span>           →    ./script.sh
+<span class="c-teal">ipconfig</span>               →    ip addr
+<span class="c-teal">tasklist</span>               →    ps aux
+<span class="c-teal">taskkill</span>               →    kill -9 PID</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SECTION 6 — DAILY HABIT
+══════════════════════════════════════════ -->
+<div class="section" id="s6">
+  <div class="phase-header">
+    <div class="phase-icon" style="background:#ff6b6b20">📅</div>
+    <div>
+      <h2>Daily Build Habit</h2>
+      <p>This is how your product grows — every single day</p>
+    </div>
+  </div>
+
+  <div class="step open">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#ff6b6b20;color:#ff6b6b">AM</div>
+      <div class="step-info">
+        <div class="step-title">Every morning — startup (10 min)</div>
+        <div class="step-desc">Before you write one line of code</div>
+      </div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <div class="code-wrap">
+        <div class="code-label">morning routine</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre"><span class="c-teal">cd</span> C:\MyAIProduct
+
+<span class="c-muted"># 1. Get latest code</span>
+<span class="c-teal">git</span> pull
+
+<span class="c-muted"># 2. Start Docker services</span>
+<span class="c-teal">cd</span> core
+<span class="c-teal">docker</span> compose --env-file ..\config\.env up -d
+<span class="c-teal">cd</span> ..
+
+<span class="c-muted"># 3. Start API (keep this terminal open)</span>
+<span class="c-teal">uv</span> run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+
+<span class="c-muted"># 4. In a new terminal — run tests</span>
+<span class="c-teal">uv</span> run pytest tests/ -v -q
+<span class="c-muted"># All pass? → start building</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#ff6b6b20;color:#ff6b6b">PM</div>
+      <div class="step-info">
+        <div class="step-title">Every evening — commit (10 min)</div>
+        <div class="step-desc">Never end the day without committing</div>
+      </div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <div class="code-wrap">
+        <div class="code-label">evening routine</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre"><span class="c-teal">cd</span> C:\MyAIProduct
+
+<span class="c-muted"># 1. Run tests one more time</span>
+<span class="c-teal">uv</span> run pytest tests/ -v -q
+
+<span class="c-muted"># 2. Commit what you built today</span>
+<span class="c-teal">git</span> add .
+<span class="c-teal">git</span> commit -m <span class="c-green">"day X: what I built today in one sentence"</span>
+<span class="c-teal">git</span> push
+
+<span class="c-muted"># 3. Linux practice (15 min in WSL2 terminal)</span>
+<span class="c-muted"># Open Ubuntu, practice 3 new Linux commands</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#ff6b6b20;color:#ff6b6b">📝</div>
+      <div class="step-info">
+        <div class="step-title">Commit message format</div>
+        <div class="step-desc">Good commits = good history = easy to debug</div>
+      </div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <div class="code-wrap">
+        <div class="code-label">format: type: what you did</div>
+        <button class="copy-btn" onclick="cp(this)">copy</button>
+        <pre"><span class="c-green">feat:</span>  add RAG ingest endpoint
+<span class="c-green">feat:</span>  add Ollama chat with memory
+<span class="c-coral">fix:</span>   fix postgres connection timeout
+<span class="c-coral">fix:</span>   fix encryption key not loading from .env
+<span class="c-amber">test:</span>  add tests for config encryption
+<span class="c-blue">docs:</span>  update README with setup steps
+<span class="c-pink">chore:</span> upgrade langchain to 0.2.6</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head" onclick="toggle(this)">
+      <div class="step-num" style="background:#ff6b6b20;color:#ff6b6b">🔥</div>
+      <div class="step-info">
+        <div class="step-title">What to build — Week by Week (Month 1)</div>
+        <div class="step-desc">Exactly one feature per week</div>
+      </div>
+      <div class="chevron">▶</div>
+    </div>
+    <div class="step-body">
+      <ul class="checklist">
+        <li><span class="check-pending">W1</span>Get stack running + all 7 tests passing + NSSM auto-start on boot</li>
+        <li><span class="check-pending">W2</span>Build encrypted config API (set + get config values from Postgres)</li>
+        <li><span class="check-pending">W3</span>Build RAG pipeline (upload PDF → chunk → embed → store Qdrant → query)</li>
+        <li><span class="check-pending">W4</span>Build 3 n8n workflows (webhook→Ollama, schedule→backup, file→RAG ingest)</li>
+      </ul>
+      <div class="note-box tip">
+        <span class="icon">🎯</span>
+        <span>Every week: one feature, tested, committed, pushed. After 4 weeks you have a real working product — not just code on your machine.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end .main -->
+
+<script>
+function show(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'))
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'))
+  document.getElementById(id).classList.add('active')
+  const idx = ['s0','s1','s2','s3','s4','s5','s6'].indexOf(id)
+  document.querySelectorAll('.nav-btn')[idx].classList.add('active')
+}
+
+function toggle(head) {
+  const step = head.parentElement
+  step.classList.toggle('open')
+}
+
+function cp(btn) {
+  const pre = btn.closest('.code-wrap').querySelector('pre')
+  const lines = []
+  pre.childNodes.forEach(n => {
+    if (n.nodeType === Node.TEXT_NODE) lines.push(n.textContent)
+    else if (n.classList && n.classList.contains('copy-btn')) return
+    else if (n.classList && n.classList.contains('code-label')) return
+    else lines.push(n.textContent)
+  })
+  const text = lines.join('').trim()
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ copied'
+    setTimeout(() => btn.textContent = 'copy', 1800)
+  })
+}
+</script>
+</body>
+</html>

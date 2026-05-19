@@ -1,0 +1,27 @@
+services:
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: always
+    ports:
+      - "127.0.0.1:6333:6333"
+    volumes:
+      - ../data/qdrant:/qdrant/storage
+
+  n8n:
+    image: n8nio/n8n:latest
+    restart: always
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=host.docker.internal
+      - DB_POSTGRESDB_PORT=5433
+      - DB_POSTGRESDB_DATABASE=AGI_Start
+      - DB_POSTGRESDB_USER=postgres
+      - "DB_POSTGRESDB_PASSWORD=Naveen@677"
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=admin123
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
