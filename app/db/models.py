@@ -39,3 +39,11 @@ class UsageLog(Base):
     event_type   = Column(String, nullable=False)
     event_data   = Column(JSON)
     created_at   = Column(DateTime(timezone=True), server_default=func.now())
+
+class Conversation(Base):
+    __tablename__ = "conversations"
+    id         = Column(Integer, primary_key=True)
+    session_id = Column(String, nullable=False, index=True)
+    role       = Column(String, nullable=False)  # "user" or "assistant"
+    content    = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

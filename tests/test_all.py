@@ -68,3 +68,104 @@ def test_api_chat():
     assert r.status_code == 200
     assert "reply" in r.json()
     print("✅ /chat endpoint OK")
+
+
+def test_rag_ingest_and_query():
+    # Create a small test document
+    content = b"My AI product is built with Python, FastAPI, Ollama, and PostgreSQL. It runs locally on Windows."
+    
+    # Ingest
+    r = httpx.post(
+        f"{BASE}/rag/ingest",
+        files={"file": ("test.txt", content, "text/plain")},
+        timeout=60
+    )
+    assert r.status_code == 200
+    assert r.json()["chunks_stored"] >= 1
+    print("RAG ingest OK:", r.json())
+
+    # Query
+    r = httpx.post(
+        f"{BASE}/rag/query",
+        json={"question": "what language is this product built with?"},
+        timeout=60
+    )
+    assert r.status_code == 200
+    assert "answer" in r.json()
+    print("RAG query OK:", r.json()["answer"][:80])
+
+
+def test_chat_with_memory():
+    session = "pytest-session-day3"
+
+    # first message
+    r1 = httpx.post(f"{BASE}/chat/message", json={
+        "session_id": session,
+        "message": "My name is Naveen. Remember this."
+    }, timeout=60)
+    assert r1.status_code == 200
+    assert "reply" in r1.json()
+    print("Turn 1:", r1.json()["reply"][:60])
+
+    # second message — should remember name
+    r2 = httpx.post(f"{BASE}/chat/message", json={
+        "session_id": session,
+        "message": "What is my name?"
+    }, timeout=60)
+    assert r2.status_code == 200
+    assert "Naveen" in r2.json()["reply"]
+    print("Turn 2:", r2.json()["reply"][:60])
+
+    # check history saved in postgres
+    r3 = httpx.get(f"{BASE}/chat/history/{session}")
+    assert r3.status_code == 200
+    assert r3.json()["count"] >= 4  # 2 user + 2 assistant
+    print("History count:", r3.json()["count"])
+
+def test_clear_history():
+    session = "pytest-clear-test"
+    httpx.post(f"{BASE}/chat/message", json={
+        "session_id": session,
+        "message": "hello"
+    }, timeout=60)
+    r = httpx.post(f"{BASE}/chat/clear", json={"session_id": session})
+    assert r.status_code == 200
+    history = httpx.get(f"{BASE}/chat/history/{session}")
+    assert history.json()["count"] == 0
+    print("Clear history: OK")
+
+
+def test_daily_summary():
+    r = httpx.post("http://127.0.0.1:8001/summary/daily", timeout=60)
+    assert r.status_code == 200
+    data = r.json()
+    assert "summary" in data
+    assert "stats" in data
+    print("Summary:", data["summary"][:80])
+
+def test_ingest_path():
+    import tempfile, os
+    # create a temp file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt',
+                                     delete=False, encoding='utf-8') as f:
+        f.write("This is a test document about Python and AI automation.")
+        tmp_path = f.name
+
+    r = httpx.post("http://127.0.0.1:8001/rag/ingest-path", json={
+        "file_path": tmp_path,
+        "doc_name": "temp-test-doc"
+    }, timeout=60)
+    assert r.status_code == 200
+    assert r.json()["chunks_stored"] >= 1
+    print("Ingest path OK:", r.json())
+    os.unlink(tmp_path)
+
+def test_webhook_via_n8n():
+    r = httpx.post("http://127.0.0.1:5678/webhook/ai-chat",
+        headers={"Content-Type": "application/json"},
+        json={"session_id": "n8n-pytest", "message": "say hello"},
+        timeout=60
+    )
+    assert r.status_code == 200
+    assert "reply" in r.json()
+    print("n8n webhook OK:", r.json()["reply"][:60])
