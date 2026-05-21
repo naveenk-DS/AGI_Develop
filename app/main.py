@@ -10,6 +10,7 @@ from app.routers import summary
 from app.routers import configs #from app.routers import configs
 from app.routers import licenses
 from app.routers import dashboard
+from app.routers import agent
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -54,6 +55,8 @@ app.include_router(summary.router)
 app.include_router(configs.router)
 app.include_router(licenses.router)
 app.include_router(dashboard.router)
+app.include_router(agent.router)
+
 
 @app.get("/health")
 async def health():

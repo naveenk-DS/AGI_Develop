@@ -8,7 +8,7 @@ from loguru import logger
 WATCH_FOLDER = Path("F:/naveen/AGI_Start/watch")
 API_URL = "http://127.0.0.1:8001/rag/ingest-path"
 
-SUPPORTED = {".txt", ".md", ".csv"}
+SUPPORTED = {".txt", ".md", ".csv", ".pdf", ".docx"}
 
 class NewFileHandler(FileSystemEventHandler):
     def on_created(self, event):

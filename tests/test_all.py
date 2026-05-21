@@ -253,3 +253,92 @@ def test_file_watcher():
     )
     assert r.status_code == 200
     print("Watcher RAG query OK:", r.json()["answer"][:60])
+
+
+def test_csv_ingest():
+    import tempfile, os
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv',
+                                     delete=False, encoding='utf-8') as f:
+        f.write("product,price,category\n")
+        f.write("Python Book,500,Education\n")
+        f.write("AI Course,2000,Technology\n")
+        tmp = f.name
+
+    r = httpx.post("http://127.0.0.1:8001/rag/ingest-path", json={
+        "file_path": tmp.replace("\\", "/"),
+        "doc_name": "test-csv"
+    }, timeout=60)
+    assert r.status_code == 200
+    data = r.json()
+    assert data["chunks_stored"] >= 1
+    assert data["file_type"] == ".csv"
+    print("CSV ingest OK:", data)
+    os.unlink(tmp)
+
+def test_txt_ingest_still_works():
+    import tempfile, os
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt',
+                                     delete=False, encoding='utf-8') as f:
+        f.write("FastAPI is a modern Python web framework for building APIs quickly.")
+        tmp = f.name
+
+    r = httpx.post("http://127.0.0.1:8001/rag/ingest-path", json={
+        "file_path": tmp.replace("\\", "/"),
+        "doc_name": "test-txt-day8"
+    }, timeout=60)
+    assert r.status_code == 200
+    assert r.json()["file_type"] == ".txt"
+    print("TXT still works OK")
+    os.unlink(tmp)
+
+def test_unsupported_file_rejected():
+    r = httpx.post("http://127.0.0.1:8001/rag/ingest-path", json={
+        "file_path": "F:/naveen/AGI_Start/app/main.py",
+        "doc_name": "python-file"
+    }, timeout=30)
+    assert r.status_code == 200
+    assert "error" in r.json()
+    print("Unsupported file correctly rejected:", r.json()["error"])
+
+def test_agent_direct_chat():
+    r = httpx.post("http://127.0.0.1:8001/agent/run", json={
+        "session_id": "pytest-agent-001",
+        "message": "what is 2 plus 2?"
+    }, timeout=60)
+    assert r.status_code == 200
+    data = r.json()
+    assert "answer" in data
+    assert "tool_used" in data
+    print("Agent chat OK — tool:", data["tool_used"])
+
+def test_agent_rag_search():
+    r = httpx.post("http://127.0.0.1:8001/agent/run", json={
+        "session_id": "pytest-agent-002",
+        "message": "what documents have been ingested?"
+    }, timeout=60)
+    assert r.status_code == 200
+    data = r.json()
+    assert "answer" in data
+    print("Agent RAG OK — tool:", data["tool_used"])
+
+def test_agent_tools_list():
+    r = httpx.get("http://127.0.0.1:8001/agent/tools")
+    assert r.status_code == 200
+    assert "tools" in r.json()
+    print("Agent tools:", list(r.json()["tools"].keys()))
+
+def test_agent_remembers_context():
+    session = "pytest-agent-memory"
+    # first message
+    httpx.post("http://127.0.0.1:8001/agent/run", json={
+        "session_id": session,
+        "message": "my favourite language is Python"
+    }, timeout=60)
+    # second message — should remember
+    r = httpx.post("http://127.0.0.1:8001/agent/run", json={
+        "session_id": session,
+        "message": "what is my favourite language?"
+    }, timeout=60)
+    assert r.status_code == 200
+    assert "Python" in r.json()["answer"]
+    print("Agent memory OK:", r.json()["answer"][:60])
