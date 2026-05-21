@@ -7,7 +7,9 @@ from app.db import models  # registers all tables with Base
 from app.routers import rag
 from app.routers import chat
 from app.routers import summary
-
+from app.routers import configs #from app.routers import configs
+from app.routers import licenses
+from app.routers import dashboard
 
 # Log to file + terminal
 logger.remove()
@@ -36,7 +38,9 @@ app = FastAPI(
 app.include_router(rag.router)
 app.include_router(chat.router)
 app.include_router(summary.router)
-
+app.include_router(configs.router)
+app.include_router(licenses.router)
+app.include_router(dashboard.router)
 
 @app.get("/health")
 async def health():

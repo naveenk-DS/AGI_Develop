@@ -4,15 +4,16 @@ from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.hazmat.backends import default_backend
 
 def get_machine_id() -> str:
-    """Unique ID from this PC's hardware."""
-    result = subprocess.check_output(
-        "wmic csproduct get uuid /value",
-        shell=True, encoding="utf-8"
-    )
-    return result.strip().replace("UUID=", "")
+    try:
+        result = subprocess.check_output(
+            "wmic csproduct get uuid /value",
+            shell=True, encoding="utf-8"
+        )
+        return result.strip().replace("UUID=", "").strip()
+    except:
+        return "default-machine-id-fallback"
 
 def derive_key(machine_id: str) -> bytes:
-    """Derive AES-256 key from hardware ID."""
     kdf = Scrypt(
         salt=b"myaiproduct-salt-v1",
         length=32, n=2**14, r=8, p=1,
@@ -20,7 +21,6 @@ def derive_key(machine_id: str) -> bytes:
     )
     return kdf.derive(machine_id.encode())
 
-# Derived once at startup
 _KEY = derive_key(get_machine_id())
 
 def encrypt(data: dict) -> bytes:

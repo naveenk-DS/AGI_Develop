@@ -169,3 +169,56 @@ def test_webhook_via_n8n():
     assert r.status_code == 200
     assert "reply" in r.json()
     print("n8n webhook OK:", r.json()["reply"][:60])
+
+def test_encrypted_config():
+    # save encrypted
+    r = httpx.post("http://127.0.0.1:8001/configs/set", json={
+        "customer_id": "test-naveen",
+        "key": "settings",
+        "value": {"model": "llama3", "temp": 0.7}
+    })
+    assert r.status_code == 200
+    assert r.json()["status"] == "saved"
+
+    # read back decrypted
+    r = httpx.get("http://127.0.0.1:8001/configs/get/test-naveen/settings")
+    assert r.status_code == 200
+    assert r.json()["value"]["model"] == "llama3"
+    print("Encrypted config OK:", r.json()["value"])
+
+def test_license_create_and_activate():
+    # create
+    r = httpx.post("http://127.0.0.1:8001/license/create", json={
+        "license_key": "PYTEST-LICENSE-DAY5",
+        "plan": "starter"
+    })
+    assert r.status_code == 200
+
+    # activate
+    r = httpx.post("http://127.0.0.1:8001/license/activate", json={
+        "license_key": "PYTEST-LICENSE-DAY5"
+    })
+    assert r.status_code == 200
+    assert r.json()["valid"] == True
+    print("License OK:", r.json()["plan"])
+
+def test_invalid_license():
+    r = httpx.post("http://127.0.0.1:8001/license/activate", json={
+        "license_key": "FAKE-KEY-000"
+    })
+    assert r.status_code == 200
+    assert r.json()["valid"] == False
+    print("Invalid license correctly rejected")
+
+
+def test_dashboard_loads():
+    r = httpx.get("http://127.0.0.1:8001/dashboard/")
+    assert r.status_code == 200
+    assert "MyAIProduct" in r.text
+    print("Dashboard OK")
+
+def test_dashboard_stats():
+    r = httpx.get("http://127.0.0.1:8001/dashboard/stats")
+    assert r.status_code == 200
+    assert "total_events" in r.json()
+    print("Dashboard stats OK:", r.json()["total_events"])
