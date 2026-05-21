@@ -23,6 +23,7 @@ dependencies = [
     "qdrant-client>=1.18.0",
     "sqlalchemy>=2.0.49",
     "uvicorn[standard]>=0.47.0",
+    "watchdog>=6.0.0",
 ]
 
 [dependency-groups]

@@ -222,3 +222,34 @@ def test_dashboard_stats():
     assert r.status_code == 200
     assert "total_events" in r.json()
     print("Dashboard stats OK:", r.json()["total_events"])
+
+
+import time
+from pathlib import Path
+
+def test_file_watcher():
+    import uuid
+    watch_folder = Path("F:/naveen/AGI_Start/watch")
+    test_file_name = f"watcher-test-{uuid.uuid4().hex[:6]}.txt"
+    test_file = watch_folder / test_file_name
+
+    # drop a file in watch folder
+    test_file.write_text("The file watcher test is working correctly with Python watchdog.")
+
+    # wait for watcher to process it (up to 30 seconds since local Ollama can be slow)
+    for _ in range(15):
+        time.sleep(2)
+        processed = watch_folder / "processed" / test_file_name
+        if processed.exists():
+            break
+
+    assert processed.exists(), "File was not moved to processed folder (watcher timed out or failed)"
+    print("File watcher OK — file moved to processed")
+
+    # verify it was ingested by querying
+    r = httpx.post("http://127.0.0.1:8001/rag/query",
+        json={"question": "what is working correctly with watchdog?"},
+        timeout=60
+    )
+    assert r.status_code == 200
+    print("Watcher RAG query OK:", r.json()["answer"][:60])
