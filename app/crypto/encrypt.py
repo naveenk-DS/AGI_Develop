@@ -6,7 +6,7 @@ from cryptography.hazmat.backends import default_backend
 def get_machine_id() -> str:
     try:
         import uuid
-        return str(uuid.getnode())  # uses MAC address — works on all Windows
+        return str(uuid.getnode())
     except:
         return "default-machine-id-fallback"
 

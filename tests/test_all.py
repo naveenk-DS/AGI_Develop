@@ -187,16 +187,17 @@ def test_encrypted_config():
     print("Encrypted config OK:", r.json()["value"])
 
 def test_license_create_and_activate():
-    # create
+    import time
+    unique_key = f"PYTEST-LICENSE-{int(time.time())}"
+    
     r = httpx.post("http://127.0.0.1:8001/license/create", json={
-        "license_key": "PYTEST-LICENSE-DAY5",
+        "license_key": unique_key,
         "plan": "starter"
     })
     assert r.status_code == 200
 
-    # activate
     r = httpx.post("http://127.0.0.1:8001/license/activate", json={
-        "license_key": "PYTEST-LICENSE-DAY5"
+        "license_key": unique_key
     })
     assert r.status_code == 200
     assert r.json()["valid"] == True

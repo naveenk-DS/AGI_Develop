@@ -41,6 +41,9 @@ async def lifespan(app: FastAPI):
 
     logger.info("MyAIProduct API started")
     yield
+    from app.services.watcher import stop_event
+    stop_event.set()
+    executor.shutdown(wait=True)
     await engine.dispose()
     logger.info("API shutdown")
 

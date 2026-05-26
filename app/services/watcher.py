@@ -43,6 +43,10 @@ class NewFileHandler(FileSystemEventHandler):
         except Exception as e:
             logger.error(f"Watcher error: {e}")
 
+import threading
+
+stop_event = threading.Event()
+
 def start_watcher():
     WATCH_FOLDER.mkdir(exist_ok=True)
     (WATCH_FOLDER / "processed").mkdir(exist_ok=True)
@@ -54,11 +58,16 @@ def start_watcher():
     logger.info(f"Watching folder: {WATCH_FOLDER}")
 
     try:
-        while True:
-            time.sleep(2)
+        while not stop_event.is_set():
+            time.sleep(1)
     except KeyboardInterrupt:
-        observer.stop()
+        pass
+    
+    observer.stop()
     observer.join()
 
 if __name__ == "__main__":
-    start_watcher()
+    try:
+        start_watcher()
+    except KeyboardInterrupt:
+        stop_event.set()
