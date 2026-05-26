@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, UploadFile, File
 from pydantic import BaseModel
 from app.services.ollama import embed, chat
 from app.services.qdrant import save_chunks, search
@@ -32,6 +32,40 @@ class QueryRequest(BaseModel):
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
+
+@router.post("/ingest")
+async def ingest_file(file: UploadFile = File(...)):
+    """Accept a file upload, embed its text, and store chunks in Qdrant."""
+    raw = await file.read()
+    try:
+        text = raw.decode("utf-8", errors="replace")
+    except Exception as e:
+        return {"error": f"Could not decode file: {str(e)}"}
+
+    if not text.strip():
+        return {"error": "File is empty or could not be read"}
+
+    doc_name = file.filename or "uploaded_file"
+    chunks = chunk_text(text)
+    logger.info(f"Ingesting uploaded file '{doc_name}' — {len(chunks)} chunks")
+
+    embedded_chunks = []
+    for chunk in chunks:
+        embedding = await embed(chunk)
+        embedded_chunks.append({
+            "text": chunk,
+            "embedding": embedding,
+            "doc_name": doc_name,
+        })
+
+    count = save_chunks(embedded_chunks)
+    return {
+        "status": "ok",
+        "doc_name": doc_name,
+        "chunks_stored": count,
+        "total_chars": len(text),
+    }
+
 
 @router.post("/ingest-path")
 async def ingest_from_path(body: IngestPathRequest):

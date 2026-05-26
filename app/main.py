@@ -11,6 +11,7 @@ from app.routers import configs #from app.routers import configs
 from app.routers import licenses
 from app.routers import dashboard
 from app.routers import agent
+from app.routers import backup
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -56,6 +57,8 @@ app.include_router(configs.router)
 app.include_router(licenses.router)
 app.include_router(dashboard.router)
 app.include_router(agent.router)
+app.include_router(backup.router)
+
 
 
 @app.get("/health")

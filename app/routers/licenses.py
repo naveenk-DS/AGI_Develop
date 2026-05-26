@@ -68,7 +68,9 @@ async def create_license(body: LicenseCreate, db: AsyncSession = Depends(get_db)
 async def license_status(db: AsyncSession = Depends(get_db)):
     machine_id = get_machine_id()
     result = await db.execute(
-        select(License).where(License.machine_id == machine_id)
+        select(License)
+        .where(License.machine_id == machine_id)
+        .limit(1)
     )
     lic = result.scalar_one_or_none()
     if not lic:

@@ -5,11 +5,8 @@ from cryptography.hazmat.backends import default_backend
 
 def get_machine_id() -> str:
     try:
-        result = subprocess.check_output(
-            "wmic csproduct get uuid /value",
-            shell=True, encoding="utf-8"
-        )
-        return result.strip().replace("UUID=", "").strip()
+        import uuid
+        return str(uuid.getnode())  # uses MAC address — works on all Windows
     except:
         return "default-machine-id-fallback"
 
