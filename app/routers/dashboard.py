@@ -146,20 +146,34 @@ async function sendMsg() {
 
     const messages = document.getElementById("messages")
     messages.innerHTML += `<div class='msg-user'>You: ${msg}</div>`
+
+    const aiDiv = document.createElement("div")
+    aiDiv.className = "msg-ai"
+    aiDiv.textContent = "AI: "
+    messages.appendChild(aiDiv)
     messages.scrollTop = messages.scrollHeight
 
     try {
-        const r = await fetch("/chat/message", {
+        const response = await fetch("/stream/chat", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({session_id: SESSION, message: msg})
         })
-        const d = await r.json()
-        messages.innerHTML += `<div class='msg-ai'>AI: ${d.reply}</div>`
-        messages.scrollTop = messages.scrollHeight
+
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+
+        while (true) {
+            const {done, value} = await reader.read()
+            if (done) break
+            aiDiv.textContent += decoder.decode(value)
+            messages.scrollTop = messages.scrollHeight
+        }
+
         loadStats()
     } catch(e) {
-        messages.innerHTML += `<div class='msg-ai' style='color:#ff6b6b'>Error: could not reach API</div>`
+        aiDiv.textContent += " [Error: could not reach API]"
+        aiDiv.style.color = "#ff6b6b"
     }
 }
 

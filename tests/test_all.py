@@ -430,3 +430,22 @@ def test_session_cleanup():
     assert r.status_code == 200
     assert "sessions_deleted" in r.json()
     print("Cleanup OK:", r.json())
+
+
+def test_stream_chat():
+    r = httpx.post("http://127.0.0.1:8001/stream/chat", json={
+        "session_id": "pytest-stream-001",
+        "message": "say hello in one word"
+    }, timeout=60)
+    assert r.status_code == 200
+    assert len(r.text) > 0
+    print("Stream chat OK:", r.text[:60])
+
+def test_stream_agent():
+    r = httpx.post("http://127.0.0.1:8001/stream/agent", json={
+        "session_id": "pytest-stream-agent-001",
+        "message": "what is 2 plus 2?"
+    }, timeout=60)
+    assert r.status_code == 200
+    assert len(r.text) > 0
+    print("Stream agent OK:", r.text[:60])

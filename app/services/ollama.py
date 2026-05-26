@@ -37,3 +37,38 @@ async def embed(text: str) -> list[float]:
             json={"model": "nomic-embed-text", "prompt": text})
         r.raise_for_status()
         return r.json()["embedding"]
+
+
+from fastapi.responses import StreamingResponse
+import json
+
+async def chat_stream(
+    prompt: str,
+    model: str = "llama3",
+    system: str = None,
+    history: list[dict] = None
+):
+    messages = []
+    if system:
+        messages.append({"role": "system", "content": system})
+    if history:
+        messages.extend(history)
+    messages.append({"role": "user", "content": prompt})
+
+    async with httpx.AsyncClient(timeout=120) as client:
+        async with client.stream("POST", f"{OLLAMA}/api/chat", json={
+            "model": model,
+            "messages": messages,
+            "stream": True
+        }) as response:
+            async for line in response.aiter_lines():
+                if line.strip():
+                    try:
+                        data = json.loads(line)
+                        token = data.get("message", {}).get("content", "")
+                        if token:
+                            yield token
+                        if data.get("done"):
+                            break
+                    except json.JSONDecodeError:
+                        continue
