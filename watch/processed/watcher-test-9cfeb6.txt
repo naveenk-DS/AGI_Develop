@@ -1,0 +1,1 @@
+The file watcher test is working correctly with Python watchdog.

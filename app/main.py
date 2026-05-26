@@ -18,6 +18,7 @@ from app.routers import stream
 from app.routers import webhook
 from app.middleware.auth import APIKeyMiddleware
 from app.routers import analytics
+from app.routers import settings
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -72,6 +73,7 @@ app.include_router(sessions.router)
 app.include_router(stream.router)
 app.include_router(webhook.router)
 app.include_router(analytics.router)
+app.include_router(settings.router)
 
 
 

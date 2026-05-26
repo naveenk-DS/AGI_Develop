@@ -513,3 +513,60 @@ def test_analytics_response_times():
     assert r.status_code == 200
     assert "avg_ms" in r.json()
     print("Analytics response times OK:", r.json())
+
+
+def test_settings_get_all():
+    r = httpx.get("http://127.0.0.1:8001/settings/all")
+    assert r.status_code == 200
+    data = r.json()
+    assert "settings" in data
+    assert "default_model" in data["settings"]
+    print("Settings all OK:", data["settings"])
+
+def test_settings_update_and_get():
+    r = httpx.post("http://127.0.0.1:8001/settings/update", json={
+        "key": "default_model",
+        "value": "llama3"
+    })
+    assert r.status_code == 200
+    assert r.json()["status"] == "updated"
+
+    r2 = httpx.get("http://127.0.0.1:8001/settings/get/default_model")
+    assert r2.status_code == 200
+    assert r2.json()["value"] == "llama3"
+    print("Settings update OK:", r2.json())
+
+def test_settings_invalid_key():
+    r = httpx.post("http://127.0.0.1:8001/settings/update", json={
+        "key": "fake_setting",
+        "value": "anything"
+    })
+    assert r.status_code == 200
+    assert "error" in r.json()
+    print("Invalid setting rejected OK")
+
+def test_settings_reset():
+    r = httpx.post("http://127.0.0.1:8001/settings/reset")
+    assert r.status_code == 200
+    assert r.json()["status"] == "reset"
+    print("Settings reset OK")
+
+
+def test_week3_all_endpoints():
+    endpoints = [
+        "/health",
+        "/dashboard/stats",
+        "/agent/tools",
+        "/backup/list",
+        "/license/status",
+        "/templates/list",
+        "/sessions/list",
+        "/sessions/stats",
+        "/analytics/overview",
+        "/analytics/tools",
+        "/settings/all",
+    ]
+    for ep in endpoints:
+        r = httpx.get(f"http://127.0.0.1:8001{ep}", timeout=15)
+        assert r.status_code == 200, f"FAILED: {ep}"
+    print("All Week 3 endpoints healthy")
