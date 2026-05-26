@@ -376,3 +376,57 @@ def test_template_delete():
     assert r.status_code == 200
     assert r.json()["status"] == "deleted"
     print("Template delete OK")
+
+
+
+def test_session_list():
+    # create a session first
+    httpx.post("http://127.0.0.1:8001/chat/message", json={
+        "session_id": "pytest-session-list-001",
+        "message": "hello from session list test"
+    }, timeout=60)
+
+    r = httpx.get("http://127.0.0.1:8001/sessions/list")
+    assert r.status_code == 200
+    assert "sessions" in r.json()
+    assert r.json()["total"] >= 1
+    print("Sessions list OK:", r.json()["total"], "sessions")
+
+def test_session_get():
+    session = "pytest-session-get-001"
+    httpx.post("http://127.0.0.1:8001/chat/message", json={
+        "session_id": session,
+        "message": "test message for get"
+    }, timeout=60)
+
+    r = httpx.get(f"http://127.0.0.1:8001/sessions/get/{session}")
+    assert r.status_code == 200
+    assert r.json()["message_count"] >= 1
+    print("Session get OK:", r.json()["message_count"], "messages")
+
+def test_session_delete():
+    session = "pytest-session-delete-001"
+    httpx.post("http://127.0.0.1:8001/chat/message", json={
+        "session_id": session,
+        "message": "this will be deleted"
+    }, timeout=60)
+
+    r = httpx.delete(f"http://127.0.0.1:8001/sessions/delete/{session}")
+    assert r.status_code == 200
+    assert r.json()["status"] == "deleted"
+
+    r2 = httpx.get(f"http://127.0.0.1:8001/sessions/get/{session}")
+    assert r2.json().get("error") == "Session not found"
+    print("Session delete OK")
+
+def test_session_stats():
+    r = httpx.get("http://127.0.0.1:8001/sessions/stats")
+    assert r.status_code == 200
+    assert "total_sessions" in r.json()
+    print("Session stats OK:", r.json())
+
+def test_session_cleanup():
+    r = httpx.delete("http://127.0.0.1:8001/sessions/cleanup?days=30")
+    assert r.status_code == 200
+    assert "sessions_deleted" in r.json()
+    print("Cleanup OK:", r.json())

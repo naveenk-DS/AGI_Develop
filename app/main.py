@@ -13,6 +13,7 @@ from app.routers import dashboard
 from app.routers import agent
 from app.routers import backup
 from app.routers import templates
+from app.routers import sessions
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -63,6 +64,7 @@ app.include_router(dashboard.router)
 app.include_router(agent.router)
 app.include_router(backup.router)
 app.include_router(templates.router)
+app.include_router(sessions.router)
 
 
 
