@@ -15,6 +15,8 @@ from app.routers import backup
 from app.routers import templates
 from app.routers import sessions
 from app.routers import stream
+from app.routers import webhook
+from app.middleware.auth import APIKeyMiddleware
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -67,6 +69,7 @@ app.include_router(backup.router)
 app.include_router(templates.router)
 app.include_router(sessions.router)
 app.include_router(stream.router)
+app.include_router(webhook.router)
 
 
 

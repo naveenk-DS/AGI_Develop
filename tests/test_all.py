@@ -449,3 +449,34 @@ def test_stream_agent():
     assert r.status_code == 200
     assert len(r.text) > 0
     print("Stream agent OK:", r.text[:60])
+
+
+API_KEY = "naveen-agi-develop-key-2027"
+
+def test_webhook_without_key():
+    r = httpx.get("http://127.0.0.1:8001/webhook/test")
+    assert r.status_code == 401
+    print("Webhook auth rejected correctly")
+
+def test_webhook_with_key():
+    r = httpx.get(
+        "http://127.0.0.1:8001/webhook/test",
+        headers={"X-API-Key": API_KEY}
+    )
+    assert r.status_code == 200
+    print("Webhook auth accepted correctly")
+
+def test_webhook_chat_authenticated():
+    r = httpx.post(
+        "http://127.0.0.1:8001/webhook/chat",
+        headers={"X-API-Key": API_KEY},
+        json={
+            "session_id": "pytest-webhook-001",
+            "message": "say hello",
+            "source": "pytest"
+        },
+        timeout=60
+    )
+    assert r.status_code == 200
+    assert "reply" in r.json()
+    print("Webhook chat OK:", r.json()["reply"][:60])
