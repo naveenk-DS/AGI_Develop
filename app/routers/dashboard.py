@@ -84,6 +84,11 @@ async def dashboard():
         <div class="card"><h3>Status</h3><p style="font-size:1rem;margin-top:4px" id="uptime">Live</p></div>
     </div>
 
+    <div class="logs" id="analytics-section">
+        <h2>Analytics</h2>
+        <div id="analytics-content">Loading...</div>
+    </div>
+
     <div class="logs">
         <h2>Recent Activity</h2>
         <div id="log-list">Loading...</div>
@@ -176,6 +181,22 @@ async function sendMsg() {
         aiDiv.style.color = "#ff6b6b"
     }
 }
+
+async function loadAnalytics() {
+    try {
+        const r = await fetch("/analytics/overview")
+        const d = await r.json()
+        document.getElementById("analytics-content").innerHTML = `
+            <div class="log-item">Events last 24h: <span>${d.events_last_24h}</span></div>
+            <div class="log-item">Events last 7d: <span>${d.events_last_7d}</span></div>
+            <div class="log-item">Total sessions: <span>${d.total_sessions}</span></div>
+            <div class="log-item">Total messages: <span>${d.total_messages}</span></div>
+        `
+    } catch(e) { console.error(e) }
+}
+
+loadAnalytics()
+setInterval(loadAnalytics, 30000)
 
 loadStats()
 checkServices()

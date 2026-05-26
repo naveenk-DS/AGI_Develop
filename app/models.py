@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime
 from sqlalchemy.sql import func
 from app.db.database import Base
+from app.db.models import UsageLog, Conversation
 
 class PromptTemplate(Base):
     __tablename__ = "prompt_templates"

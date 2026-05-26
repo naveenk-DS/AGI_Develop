@@ -480,3 +480,36 @@ def test_webhook_chat_authenticated():
     assert r.status_code == 200
     assert "reply" in r.json()
     print("Webhook chat OK:", r.json()["reply"][:60])
+
+
+def test_analytics_overview():
+    r = httpx.get("http://127.0.0.1:8001/analytics/overview")
+    assert r.status_code == 200
+    data = r.json()
+    assert "total_events" in data
+    assert "total_sessions" in data
+    print("Analytics overview OK:", data)
+
+def test_analytics_tools():
+    r = httpx.get("http://127.0.0.1:8001/analytics/tools")
+    assert r.status_code == 200
+    assert "tool_usage" in r.json()
+    print("Analytics tools OK:", r.json()["tool_usage"][:3])
+
+def test_analytics_daily():
+    r = httpx.get("http://127.0.0.1:8001/analytics/daily?days=7")
+    assert r.status_code == 200
+    assert "daily" in r.json()
+    print("Analytics daily OK:", r.json()["daily"])
+
+def test_analytics_top_sessions():
+    r = httpx.get("http://127.0.0.1:8001/analytics/top-sessions?limit=5")
+    assert r.status_code == 200
+    assert "top_sessions" in r.json()
+    print("Analytics top sessions OK:", len(r.json()["top_sessions"]))
+
+def test_analytics_response_times():
+    r = httpx.get("http://127.0.0.1:8001/analytics/response-times")
+    assert r.status_code == 200
+    assert "avg_ms" in r.json()
+    print("Analytics response times OK:", r.json())
