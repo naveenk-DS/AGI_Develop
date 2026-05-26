@@ -343,3 +343,36 @@ def test_agent_remembers_context():
     assert r.status_code == 200
     assert "Python" in r.json()["answer"]
     print("Agent memory OK:", r.json()["answer"][:60])
+
+
+def test_template_create_and_list():
+    r = httpx.post("http://127.0.0.1:8001/templates/create", json={
+        "name": "pytest_template",
+        "description": "Test template",
+        "system": "You are a test assistant. Always reply with exactly: TEST OK",
+        "model": "llama3"
+    })
+    assert r.status_code == 200
+    assert r.json()["status"] == "saved"
+
+    r2 = httpx.get("http://127.0.0.1:8001/templates/list")
+    assert r2.status_code == 200
+    names = [t["name"] for t in r2.json()["templates"]]
+    assert "pytest_template" in names
+    print("Templates OK:", names)
+
+def test_template_run():
+    r = httpx.post("http://127.0.0.1:8001/templates/run", json={
+        "template_name": "pytest_template",
+        "message": "hello",
+        "session_id": "pytest-template-session"
+    }, timeout=60)
+    assert r.status_code == 200
+    assert "reply" in r.json()
+    print("Template run OK:", r.json()["reply"][:60])
+
+def test_template_delete():
+    r = httpx.delete("http://127.0.0.1:8001/templates/delete/pytest_template")
+    assert r.status_code == 200
+    assert r.json()["status"] == "deleted"
+    print("Template delete OK")
