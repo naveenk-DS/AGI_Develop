@@ -570,3 +570,26 @@ def test_week3_all_endpoints():
         r = httpx.get(f"http://127.0.0.1:8001{ep}", timeout=15)
         assert r.status_code == 200, f"FAILED: {ep}"
     print("All Week 3 endpoints healthy")
+
+
+def test_rate_limit_info():
+    r = httpx.get("http://127.0.0.1:8001/analytics/rate-limits")
+    assert r.status_code == 200
+    assert "limits" in r.json()
+    print("Rate limits OK:", r.json()["limits"])
+
+def test_chat_still_works_with_rate_limit():
+    r = httpx.post("http://127.0.0.1:8001/chat/message", json={
+        "session_id": "pytest-rate-limit-test",
+        "message": "hello"
+    }, timeout=60)
+    assert r.status_code == 200
+    print("Chat with rate limit OK")
+
+def test_agent_still_works_with_rate_limit():
+    r = httpx.post("http://127.0.0.1:8001/agent/run", json={
+        "session_id": "pytest-rate-limit-agent",
+        "message": "say hello"
+    }, timeout=60)
+    assert r.status_code == 200
+    print("Agent with rate limit OK")

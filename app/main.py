@@ -19,6 +19,10 @@ from app.routers import webhook
 from app.middleware.auth import APIKeyMiddleware
 from app.routers import analytics
 from app.routers import settings
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -74,6 +78,9 @@ app.include_router(stream.router)
 app.include_router(webhook.router)
 app.include_router(analytics.router)
 app.include_router(settings.router)
+app.state.limiter = Limiter(key_func=get_remote_address)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 
 

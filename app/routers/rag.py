@@ -6,6 +6,12 @@ from loguru import logger
 from app.services.document_loader import load_document, get_supported_extensions
 
 
+from fastapi import APIRouter, UploadFile, File, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
+
 router = APIRouter(prefix="/rag", tags=["rag"])
 
 
@@ -130,3 +136,22 @@ Question: {body.question}"""
         "answer": answer,
         "chunks_used": len(relevant_chunks),
     }
+
+
+@router.post("/ingest")
+@limiter.limit("10/minute")
+async def ingest(request: Request, file: UploadFile = File(...)):
+    content = await file.read()
+    text = content.decode("utf-8", errors="ignore")
+    chunks = chunk_text(text)
+    logger.info(f"Ingesting {file.filename} — {len(chunks)} chunks")
+    embedded_chunks = []
+    for i, chunk in enumerate(chunks):
+        embedding = await embed(chunk)
+        embedded_chunks.append({
+            "text": chunk,
+            "embedding": embedding,
+            "doc_name": file.filename
+        })
+    count = save_chunks(embedded_chunks)
+    return {"status": "ok", "file": file.filename, "chunks_stored": count}

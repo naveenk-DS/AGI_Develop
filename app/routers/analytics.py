@@ -142,3 +142,15 @@ async def error_log(limit: int = 20, db: AsyncSession = Depends(get_db)):
         ],
         "count": len(rows)
     }
+
+@router.get("/rate-limits")
+async def rate_limits():
+    return {
+        "limits": {
+            "chat_message": "30 per minute",
+            "agent_run": "20 per minute",
+            "rag_ingest": "10 per minute",
+            "general": "unlimited"
+        },
+        "note": "Limits are per IP address"
+    }
