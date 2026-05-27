@@ -23,6 +23,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from app.services.health_monitor import start_health_monitor
 
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -66,6 +67,9 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
     logger.info("API shutdown")
 
+    asyncio.create_task(start_health_monitor(interval=60))
+    logger.info("Health monitor started")
+
 app = FastAPI(
     title="AGI_Develop_From_Scartch",
     version="1.0.0",
@@ -92,6 +96,7 @@ app.add_middleware(SlowAPIMiddleware)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 app.add_exception_handler(Exception, general_exception_handler)
+
 
 
 @app.get("/health")

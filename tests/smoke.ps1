@@ -7,17 +7,20 @@ function Check($name, $url, $method = "GET") {
     try {
         if ($method -eq "GET") {
             $r = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 10
-        } else {
+        }
+        else {
             $r = Invoke-WebRequest -Uri $url -Method POST -UseBasicParsing -TimeoutSec 10
         }
         if ($r.StatusCode -eq 200) {
             Write-Host "  PASS  $name" -ForegroundColor Green
             $global:pass++
-        } else {
+        }
+        else {
             Write-Host "  FAIL  $name (status $($r.StatusCode))" -ForegroundColor Red
             $global:fail++
         }
-    } catch {
+    }
+    catch {
         Write-Host "  FAIL  $name (unreachable)" -ForegroundColor Red
         $global:fail++
     }
@@ -45,16 +48,23 @@ Write-Host ""
 Write-Host "Auth" -ForegroundColor Yellow
 try {
     $r = Invoke-WebRequest -Uri "http://127.0.0.1:8001/webhook/test" `
-        -Headers @{"X-API-Key"="naveen-agi-webhook-key-2024"} `
+        -Headers @{"X-API-Key" = "naveen-agi-webhook-key-2024" } `
         -UseBasicParsing -TimeoutSec 10
     if ($r.StatusCode -eq 200) {
         Write-Host "  PASS  Webhook auth test" -ForegroundColor Green
         $global:pass++
-    } else {
+    }
+    else {
         Write-Host "  FAIL  Webhook auth test (status $($r.StatusCode))" -ForegroundColor Red
         $global:fail++
     }
-} catch {
+}
+catch {
     Write-Host "  FAIL  Webhook auth test (unreachable)" -ForegroundColor Red
     $global:fail++
 }
+
+
+Write-Host ""
+Write-Host "Health Monitor" -ForegroundColor Yellow
+Check "Health Status"   "http://127.0.0.1:8001/analytics/health-status"

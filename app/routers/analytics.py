@@ -175,3 +175,14 @@ async def recent_errors(limit: int = 10, db: AsyncSession = Depends(get_db)):
         ],
         "count": len(rows)
     }
+
+@router.get("/health-status")
+async def health_status():
+    from app.services.health_monitor import run_health_check
+    status = await run_health_check()
+    all_healthy = all(v for k, v in status.items() if k != "last_check")
+    return {
+        "status": "healthy" if all_healthy else "degraded",
+        "services": status,
+        "checked_at": status.get("last_check")
+    }

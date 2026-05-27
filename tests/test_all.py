@@ -617,3 +617,23 @@ def test_recent_errors_endpoint():
     assert r.status_code == 200
     assert "errors" in r.json()
     print("Recent errors OK:", r.json()["count"], "errors logged")
+
+
+def test_health_status():
+    r = httpx.get("http://127.0.0.1:8001/analytics/health-status", timeout=15)
+    assert r.status_code == 200
+    data = r.json()
+    assert "status" in data
+    assert "services" in data
+    print("Health status OK:", data["status"])
+    print("Services:", data["services"])
+
+def test_health_monitor_services():
+    r = httpx.get("http://127.0.0.1:8001/analytics/health-status", timeout=15)
+    assert r.status_code == 200
+    data = r.json()
+    services = data["services"]
+    assert "ollama" in services
+    assert "qdrant" in services
+    assert "n8n" in services
+    print("All services monitored OK")
