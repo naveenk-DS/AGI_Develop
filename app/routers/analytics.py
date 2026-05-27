@@ -154,3 +154,24 @@ async def rate_limits():
         },
         "note": "Limits are per IP address"
     }
+
+@router.get("/errors/recent")
+async def recent_errors(limit: int = 10, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(UsageLog)
+        .where(UsageLog.event_type == "error")
+        .order_by(UsageLog.created_at.desc())
+        .limit(limit)
+    )
+    rows = result.scalars().all()
+    return {
+        "errors": [
+            {
+                "path": r.event_data.get("path") if r.event_data else None,
+                "error": r.event_data.get("error") if r.event_data else None,
+                "created_at": str(r.created_at)
+            }
+            for r in rows
+        ],
+        "count": len(rows)
+    }

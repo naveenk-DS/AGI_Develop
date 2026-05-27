@@ -593,3 +593,27 @@ def test_agent_still_works_with_rate_limit():
     }, timeout=60)
     assert r.status_code == 200
     print("Agent with rate limit OK")
+
+
+def test_validation_error_returns_clean_json():
+    r = httpx.post("http://127.0.0.1:8001/chat/message", json={
+        "wrong_field": "test"
+    })
+    assert r.status_code == 422
+    data = r.json()
+    assert "error" in data
+    assert "traceback" not in str(data)
+    print("Validation error clean OK:", data["error"])
+
+def test_404_returns_clean_json():
+    r = httpx.get("http://127.0.0.1:8001/nonexistent-endpoint-xyz")
+    assert r.status_code == 404
+    data = r.json()
+    assert "error" in data
+    print("404 clean OK:", data["error"])
+
+def test_recent_errors_endpoint():
+    r = httpx.get("http://127.0.0.1:8001/analytics/errors/recent")
+    assert r.status_code == 200
+    assert "errors" in r.json()
+    print("Recent errors OK:", r.json()["count"], "errors logged")
