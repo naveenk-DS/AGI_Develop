@@ -659,3 +659,19 @@ def test_health_status_after_monitor():
     assert r.status_code == 200
     assert r.json()["status"] in ["healthy", "degraded"]
     print("Health monitor OK:", r.json()["status"])
+
+
+def test_installer_files_exist():
+    from pathlib import Path
+    files = [
+        "F:/naveen/AGI_Start/installer/setup.iss",
+        "F:/naveen/AGI_Start/installer/post_install.ps1",
+        "F:/naveen/AGI_Start/installer/uninstall.ps1",
+        "F:/naveen/AGI_Start/core/open_dashboard.bat",
+        "F:/naveen/AGI_Start/core/start.bat",
+        "F:/naveen/AGI_Start/core/stop.bat",
+        "F:/naveen/AGI_Start/core/update.ps1",
+    ]
+    for f in files:
+        assert Path(f).exists(), f"Missing: {f}"
+    print("All installer files exist OK")
