@@ -4,6 +4,7 @@ from sqlalchemy import select, func, text
 from app.db.database import get_db
 from app.models import UsageLog, Conversation
 from datetime import datetime, timedelta
+import subprocess
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -185,4 +186,36 @@ async def health_status():
         "status": "healthy" if all_healthy else "degraded",
         "services": status,
         "checked_at": status.get("last_check")
+    }
+
+
+@router.get("/version")
+async def version_info():
+    try:
+        commit = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd="F:/naveen/AGI_Start",
+            encoding="utf-8"
+        ).strip()
+
+        branch = subprocess.check_output(
+            ["git", "branch", "--show-current"],
+            cwd="F:/naveen/AGI_Start",
+            encoding="utf-8"
+        ).strip()
+
+        tag = subprocess.check_output(
+            ["git", "describe", "--tags", "--abbrev=0"],
+            cwd="F:/naveen/AGI_Start",
+            encoding="utf-8"
+        ).strip()
+    except:
+        commit = "unknown"
+        branch = "unknown"
+        tag    = "unknown"
+
+    return {
+        "version": tag,
+        "branch":  branch,
+        "commit":  commit
     }

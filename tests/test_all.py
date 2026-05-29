@@ -637,3 +637,25 @@ def test_health_monitor_services():
     assert "qdrant" in services
     assert "n8n" in services
     print("All services monitored OK")
+
+
+def test_version_endpoint():
+    r = httpx.get("http://127.0.0.1:8001/analytics/version")
+    assert r.status_code == 200
+    data = r.json()
+    assert "version" in data
+    assert "commit" in data
+    assert "branch" in data
+    print("Version OK:", data)
+
+def test_updater_script_exists():
+    from pathlib import Path
+    updater = Path("F:/naveen/AGI_Start/core/update.ps1")
+    assert updater.exists()
+    print("Updater script exists OK")
+
+def test_health_status_after_monitor():
+    r = httpx.get("http://127.0.0.1:8001/analytics/health-status", timeout=15)
+    assert r.status_code == 200
+    assert r.json()["status"] in ["healthy", "degraded"]
+    print("Health monitor OK:", r.json()["status"])
