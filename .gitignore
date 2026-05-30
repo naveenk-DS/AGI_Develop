@@ -6,3 +6,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .venv/
+
+ffmpeg/
+*.exe
+watch/processed/
