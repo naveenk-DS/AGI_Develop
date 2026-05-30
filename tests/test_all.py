@@ -706,3 +706,31 @@ def test_rag_query_twice_second_is_cached():
     assert r2.status_code == 200
     assert r2.json().get("cached") == True
     print("Cache working — second query was cached")
+
+
+def test_navix_status():
+    r = httpx.get("http://127.0.0.1:8001/navix/status")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["user"] == "Naveen"
+    assert "language" in data
+    print("NAVIX status OK:", data)
+
+def test_navix_language_switch():
+    r = httpx.post("http://127.0.0.1:8001/navix/language", json={
+        "language": "tamil"
+    })
+    assert r.status_code == 200
+    assert r.json()["language"] == "tamil"
+
+    r2 = httpx.post("http://127.0.0.1:8001/navix/language", json={
+        "language": "english"
+    })
+    assert r2.status_code == 200
+    print("Language switch OK")
+
+def test_navix_greeting():
+    r = httpx.get("http://127.0.0.1:8001/navix/greeting")
+    assert r.status_code == 200
+    assert "greeting" in r.json()
+    print("Greeting OK:", r.json()["greeting"])

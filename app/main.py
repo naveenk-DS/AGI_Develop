@@ -25,6 +25,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from app.services.health_monitor import start_health_monitor
 from app.services.ollama import preload_model
+from app.routers import NAVIX_AI
 
 
 from fastapi.exceptions import RequestValidationError
@@ -100,7 +101,7 @@ app.add_middleware(SlowAPIMiddleware)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 app.add_exception_handler(Exception, general_exception_handler)
-
+app.include_router(NAVIX_AI.router)
 
 
 @app.get("/health")
