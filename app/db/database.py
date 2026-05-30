@@ -14,9 +14,11 @@ DATABASE_URL = URL.create(
 
 engine = create_async_engine(
     DATABASE_URL,
-    pool_size=10,
-    echo=False,
-    connect_args={"ssl": False}
+    pool_size=20,
+    max_overflow=10,
+    pool_pre_ping=True,
+    pool_recycle=3600,
+    echo=False
 )
 
 AsyncSessionLocal = sessionmaker(

@@ -72,3 +72,17 @@ async def chat_stream(
                             break
                     except json.JSONDecodeError:
                         continue
+
+
+
+async def preload_model(model: str = "llama3"):
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            await client.post(f"{OLLAMA}/api/generate", json={
+                "model": model,
+                "prompt": "hello",
+                "stream": False
+            })
+        logger.info(f"Model preloaded: {model}")
+    except Exception as e:
+        logger.warning(f"Could not preload model: {e}")

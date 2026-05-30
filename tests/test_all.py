@@ -675,3 +675,34 @@ def test_installer_files_exist():
     for f in files:
         assert Path(f).exists(), f"Missing: {f}"
     print("All installer files exist OK")
+
+
+
+def test_cache_stats():
+    r = httpx.get("http://127.0.0.1:8001/analytics/cache-stats")
+    assert r.status_code == 200
+    data = r.json()
+    assert "hits" in data
+    assert "hit_rate" in data
+    print("Cache stats OK:", data)
+
+def test_cache_clear():
+    r = httpx.post("http://127.0.0.1:8001/analytics/cache-clear")
+    assert r.status_code == 200
+    print("Cache clear OK")
+
+def test_rag_query_twice_second_is_cached():
+    question = "performance test question unique 12345"
+
+    r1 = httpx.post("http://127.0.0.1:8001/rag/query", json={
+        "question": question
+    }, timeout=60)
+    assert r1.status_code == 200
+    assert r1.json().get("cached") == False
+
+    r2 = httpx.post("http://127.0.0.1:8001/rag/query", json={
+        "question": question
+    }, timeout=10)
+    assert r2.status_code == 200
+    assert r2.json().get("cached") == True
+    print("Cache working — second query was cached")

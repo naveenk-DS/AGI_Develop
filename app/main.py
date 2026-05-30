@@ -24,6 +24,8 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from app.services.health_monitor import start_health_monitor
+from app.services.ollama import preload_model
+
 
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -59,6 +61,11 @@ async def lifespan(app: FastAPI):
     loop.run_in_executor(executor, start_watcher)
     logger.info("File watcher started")
 
+    asyncio.create_task(preload_model("llama3"))
+    logger.info("Model preload started")
+    asyncio.create_task(start_health_monitor(interval=60))
+    logger.info("Health monitor started")
+
     logger.info("MyAIProduct API started")
     yield
     from app.services.watcher import stop_event
@@ -66,9 +73,6 @@ async def lifespan(app: FastAPI):
     executor.shutdown(wait=True)
     await engine.dispose()
     logger.info("API shutdown")
-
-    asyncio.create_task(start_health_monitor(interval=60))
-    logger.info("Health monitor started")
 
 app = FastAPI(
     title="AGI_Develop_From_Scartch",

@@ -219,3 +219,17 @@ async def version_info():
         "branch":  branch,
         "commit":  commit
     }
+
+
+
+@router.get("/cache-stats")
+async def cache_stats():
+    from app.services.cache import get_cache_stats, cleanup_expired
+    cleanup_expired()
+    return get_cache_stats()
+
+@router.post("/cache-clear")
+async def cache_clear():
+    from app.services.cache import clear_cache
+    clear_cache()
+    return {"status": "cache cleared"}

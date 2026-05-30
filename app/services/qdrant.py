@@ -3,6 +3,7 @@ from qdrant_client.models import Distance, VectorParams, PointStruct
 from dotenv import load_dotenv
 from pathlib import Path
 import os, uuid
+from app.services.cache import make_key, get_cached, set_cached
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 load_dotenv(BASE_DIR / "config" / ".env")
@@ -42,3 +43,14 @@ def search(embedding: list[float], top_k: int = 3) -> list[str]:
         limit=top_k
     )
     return [r.payload["text"] for r in response.points]
+
+
+async def get_cached_embedding(text: str, embed_func) -> list[float]:
+    key = make_key("embed", {"text": text})
+    cached = get_cached(key)
+    if cached:
+        return cached["value"]
+    
+    embedding = await embed_func(text)
+    set_cached(key, embedding, ttl_seconds=3600)  # cache 1 hour
+    return embedding
