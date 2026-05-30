@@ -29,6 +29,7 @@ dependencies = [
     "python-docx>=1.2.0",
     "python-dotenv>=1.2.2",
     "python-multipart>=0.0.29",
+    "pyttsx3>=2.99",
     "qdrant-client>=1.18.0",
     "slowapi>=0.1.9",
     "sounddevice>=0.5.5",

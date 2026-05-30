@@ -734,3 +734,28 @@ def test_navix_greeting():
     assert r.status_code == 200
     assert "greeting" in r.json()
     print("Greeting OK:", r.json()["greeting"])
+
+
+def test_navix_status():
+    r = httpx.get("http://127.0.0.1:8001/navix/status")
+    assert r.status_code == 200
+    assert r.json()["user"] == "Naveen"
+    print("NAVIX status OK:", r.json())
+
+def test_navix_language_switch():
+    r = httpx.post("http://127.0.0.1:8001/navix/language", json={"language": "tamil"})
+    assert r.status_code == 200
+    r2 = httpx.post("http://127.0.0.1:8001/navix/language", json={"language": "english"})
+    assert r2.status_code == 200
+    print("Language switch OK")
+
+def test_navix_greeting():
+    r = httpx.get("http://127.0.0.1:8001/navix/greeting")
+    assert r.status_code == 200
+    assert "greeting" in r.json()
+    print("Greeting OK:", r.json()["greeting"])
+
+def test_navix_test_voice():
+    r = httpx.post("http://127.0.0.1:8001/navix/test-voice")
+    assert r.status_code == 200
+    print("Voice test OK")

@@ -12,10 +12,15 @@ _listening = False
 _wake_callbacks = []
 _stop_event = threading.Event()
 
-WAKE_WORDS = ["navix", "hey navix", "நவிக்ஸ்", "நவிக்ஸ் AI"]
-ENERGY_THRESHOLD = 0.02
+WAKE_WORDS = [
+    "naveen", "hey naveen",
+    "navix", "hey navix", "navix ai",
+    "navi", "hey navi",
+    "ஜார்விஸ்", "நவிக்ஸ்"
+]
+ENERGY_THRESHOLD = 0.05
 SAMPLE_RATE = 16000
-CHUNK_DURATION = 1  # seconds per chunk
+CHUNK_DURATION = 1.5  # seconds per chunk
 
 def add_wake_callback(callback):
     _wake_callbacks.append(callback)

@@ -47,3 +47,10 @@ async def switch_language(body: LanguageSwitch):
     logger.info(f"Language switched to: {body.language}")
     return {"status": "switched", "language": body.language}
 
+@router.post("/test-voice")
+async def test_voice():
+    import asyncio
+    from app.services.voice.speaker import speak
+    loop = asyncio.get_event_loop()
+    loop.run_in_executor(None, speak, "Hello Naveen, NAVIX AI voice is working correctly", "english")
+    return {"status": "speaking", "message": "Hello Naveen, NAVIX AI voice is working correctly"}
