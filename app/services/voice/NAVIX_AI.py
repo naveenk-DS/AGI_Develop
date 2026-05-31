@@ -55,22 +55,19 @@ async def navix_session():
         response = await process_command(f"Remember my plan for today: {plan}")
         logger.info(f"Plan stored: {plan}")
 
-async def handle_wake_word(text: str):
-    lang_config = SUPPORTED_LANGUAGES[USER_PROFILE["preferred_language"]]
-    speak(lang_config["wake_response"])
-
-    await asyncio.sleep(0.3)
-    command = listen_once(duration=7)
-
-    if command:
-        logger.info(f"Command received: {command}")
-        response = await process_command(command)
-        speak(response)
-
 def on_wake_word(text: str):
-    loop = asyncio.new_event_loop()
-    loop.run_until_complete(handle_wake_word(text))
-    loop.close()
+    """Called from the wake word listener thread. Run command handler in its own thread."""
+    import threading
+    def run():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(handle_wake_word(text))
+        finally:
+            loop.close()
+    t = threading.Thread(target=run, daemon=True)
+    t.start()
+    t.join()  # wait so _handling flag stays set until done
 
 def start_navix():
     logger.info("Starting NAVIX...")
@@ -78,3 +75,49 @@ def start_navix():
     add_wake_callback(on_wake_word)
     start_wake_word_listener()
     logger.info("NAVIX ready — listening for wake word")
+
+
+async def handle_wake_word(text: str):
+    from app.services.voice.pin_auth import authenticate, is_authenticated
+    from app.services.voice.speaker import speak
+
+    lang_config = SUPPORTED_LANGUAGES[USER_PROFILE["preferred_language"]]
+
+    # check if already authenticated
+    if not is_authenticated():
+        speak("Please enter your PIN to activate NAVIX")
+        success = authenticate()
+        if not success:
+            speak("Authentication failed. NAVIX locked.")
+            return
+        speak(lang_config["wake_response"])
+    else:
+        speak(lang_config["wake_response"])
+
+    await asyncio.sleep(0.3)
+    command = listen_once(duration=7)
+
+    if not command:
+        speak("I did not hear anything. Please try again.")
+        return
+
+    logger.info(f"Command received: {command}")
+
+     # lock command
+    if any(w in command.lower() for w in ["lock", "lock navix", "goodbye", "bye navix"]):
+        from app.services.voice.pin_auth import lock
+        lock()
+        speak("NAVIX locked. Say Hey Navix to unlock.")
+        return
+
+    # check if browser command
+    from app.services.command_parser import execute_browser_command
+    browser_result = await execute_browser_command(command)
+
+    if browser_result:
+        speak(browser_result)
+        return
+
+    # send to AI agent
+    response = await process_command(command)
+    speak(response)

@@ -17,13 +17,17 @@ def get_whisper_model(size: str = "base"):
         logger.info("Whisper model loaded")
     return _whisper_model
 
+DEVICE_ID = 1  # Realtek Microphone
+SAMPLE_RATE = 16000
+
 def record_audio(duration: int = 5, sample_rate: int = 16000) -> np.ndarray:
     logger.info(f"Recording for {duration} seconds...")
     audio = sd.rec(
         int(duration * sample_rate),
         samplerate=sample_rate,
         channels=1,
-        dtype="float32"
+        dtype="float32",
+        device=DEVICE_ID
     )
     sd.wait()
     logger.info("Recording complete")

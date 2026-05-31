@@ -21,6 +21,7 @@ dependencies = [
     "openai-whisper>=20250625",
     "pandas>=3.0.3",
     "passlib>=1.7.4",
+    "playwright>=1.60.0",
     "psycopg2-binary>=2.9.12",
     "pvporcupine>=4.0.2",
     "pyaudio>=0.2.14",

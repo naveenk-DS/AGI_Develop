@@ -4,6 +4,9 @@ from app.services.voice.language_config import USER_PROFILE, SUPPORTED_LANGUAGES
 from app.services.voice.speaker import speak
 from loguru import logger
 
+from pydantic import BaseModel
+
+
 router = APIRouter(prefix="/navix", tags=["navix"])
 
 class LanguageSwitch(BaseModel):
@@ -13,8 +16,16 @@ class SpeakRequest(BaseModel):
     text: str
     language: str = None
 
+class BrowserRequest(BaseModel):
+    url: str = None
+    query: str = None
+
+class CommandRequest(BaseModel):
+    command: str
+
+
 @router.get("/status")
-async def jarvis_status():
+async def navix_status():
     return {
         "status": "online",
         "user": USER_PROFILE["name"],
@@ -54,3 +65,35 @@ async def test_voice():
     loop = asyncio.get_event_loop()
     loop.run_in_executor(None, speak, "Hello Naveen, NAVIX AI voice is working correctly", "english")
     return {"status": "speaking", "message": "Hello Naveen, NAVIX AI voice is working correctly"}
+
+
+
+@router.post("/browser/open")
+async def browser_open(body: BrowserRequest):
+    from app.services.browser import open_url
+    result = await open_url(body.url)
+    return {"status": "ok", "result": result}
+
+@router.post("/browser/youtube")
+async def browser_youtube(body: BrowserRequest):
+    from app.services.browser import open_youtube
+    result = await open_youtube(body.query)
+    return {"status": "ok", "result": result}
+
+@router.post("/browser/search")
+async def browser_search(body: BrowserRequest):
+    from app.services.browser import search_google
+    result = await search_google(body.query)
+    return {"status": "ok", "result": result}
+
+@router.post("/browser/command")
+async def browser_command(body: CommandRequest):
+    from app.services.command_parser import execute_browser_command
+    result = await execute_browser_command(body.command)
+    return {"status": "ok", "result": result or "No browser action needed"}
+
+@router.post("/browser/close")
+async def browser_close():
+    from app.services.browser import close_browser
+    await close_browser()
+    return {"status": "closed"}
