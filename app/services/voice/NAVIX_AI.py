@@ -40,20 +40,40 @@ async def process_command(text: str) -> str:
         return "Sorry there was an error"
 
 async def navix_session():
-    global _active
-    _active = True
+    from app.services.planner import save_daily_plan, get_todays_plan
+    from app.services.reminder import start_reminder_loop
+    import asyncio
 
-    # greet
     greeting = get_greeting()
-    speak(f"{greeting}. What is your plan today?")
+    hour = datetime.now().hour
 
-    # listen for response
-    await asyncio.sleep(0.5)
-    plan = listen_once(duration=8)
-    if plan:
-        speak(f"Got it. I will help you with that.")
-        response = await process_command(f"Remember my plan for today: {plan}")
-        logger.info(f"Plan stored: {plan}")
+    # check if plan already exists today
+    existing_plan = await get_todays_plan()
+
+    if existing_plan:
+        speak(f"{greeting}. Welcome back. Your plan today is: {existing_plan}")
+    else:
+        speak(f"{greeting}. What is your plan for today?")
+        await asyncio.sleep(0.5)
+        plan = listen_once(duration=8)
+        if plan and plan.strip():
+            await save_daily_plan(plan)
+            speak(f"Got it. I have saved your plan. I will help you stay on track.")
+        else:
+            speak(f"{greeting}. No plan recorded. Say Hey Navix anytime to start.")
+
+    # evening check-in
+    if 18 <= hour <= 21:
+        speak("Good evening. How did your day go? What did you complete today?")
+        await asyncio.sleep(0.5)
+        completed = listen_once(duration=8)
+        if completed and completed.strip():
+            from app.services.planner import save_completed
+            await save_completed(completed)
+            speak("Great. I have saved your progress for today.")
+
+    # start reminder loop in background
+    asyncio.create_task(start_reminder_loop())
 
 def on_wake_word(text: str):
     """Called from the wake word listener thread. Run command handler in its own thread."""
@@ -108,6 +128,24 @@ async def handle_wake_word(text: str):
         from app.services.voice.pin_auth import lock
         lock()
         speak("NAVIX locked. Say Hey Navix to unlock.")
+        return
+
+    # reminder command
+    import re
+    remind_match = re.search(
+        r"remind me (?:to )?(.+?) at (\d+)(?::(\d+))?\s*(am|pm)?",
+        command.lower()
+    )
+    if remind_match:
+        from app.services.reminder import add_reminder
+        message = remind_match.group(1)
+        hour = int(remind_match.group(2))
+        minute = int(remind_match.group(3) or 0)
+        ampm = remind_match.group(4)
+        if ampm == "pm" and hour < 12:
+            hour += 12
+        await add_reminder(message, hour, minute)
+        speak(f"Reminder set. I will remind you to {message} at {hour}:{minute:02d}")
         return
 
     # check if browser command

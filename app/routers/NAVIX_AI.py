@@ -97,3 +97,31 @@ async def browser_close():
     from app.services.browser import close_browser
     await close_browser()
     return {"status": "closed"}
+
+@router.get("/planner/today")
+async def get_today_plan():
+    from app.services.planner import get_todays_plan
+    plan = await get_todays_plan()
+    return {"plan": plan, "has_plan": bool(plan)}
+
+@router.get("/planner/weekly")
+async def get_weekly():
+    from app.services.planner import get_weekly_summary
+    summary = await get_weekly_summary()
+    return {"summary": summary, "count": len(summary)}
+
+@router.post("/planner/save")
+async def save_plan(body: dict):
+    from app.services.planner import save_daily_plan
+    await save_daily_plan(body.get("plan", ""))
+    return {"status": "saved"}
+
+@router.post("/reminder/add")
+async def add_reminder_endpoint(body: dict):
+    from app.services.reminder import add_reminder
+    await add_reminder(
+        body.get("message", ""),
+        body.get("hour", 9),
+        body.get("minute", 0)
+    )
+    return {"status": "reminder added"}

@@ -31,7 +31,13 @@ def record_audio(duration: int = 5, sample_rate: int = 16000) -> np.ndarray:
     )
     sd.wait()
     logger.info("Recording complete")
-    return audio.flatten()
+    audio = audio.flatten()
+
+    # amplify audio 30x to compensate for weak mic hardware
+    audio = audio * 30.0
+    audio = np.clip(audio, -1.0, 1.0)
+
+    return audio
 
 def transcribe_audio(audio: np.ndarray, language: str = None) -> str:
     model = get_whisper_model()

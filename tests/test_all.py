@@ -759,3 +759,30 @@ def test_navix_test_voice():
     r = httpx.post("http://127.0.0.1:8001/navix/test-voice")
     assert r.status_code == 200
     print("Voice test OK")
+
+
+def test_planner_save_and_get():
+    r = httpx.post("http://127.0.0.1:8001/navix/planner/save", json={
+        "plan": "test plan for pytest"
+    })
+    assert r.status_code == 200
+
+    r2 = httpx.get("http://127.0.0.1:8001/navix/planner/today")
+    assert r2.status_code == 200
+    assert r2.json()["has_plan"] == True
+    print("Planner OK:", r2.json()["plan"])
+
+def test_planner_weekly():
+    r = httpx.get("http://127.0.0.1:8001/navix/planner/weekly")
+    assert r.status_code == 200
+    assert "summary" in r.json()
+    print("Weekly OK:", r.json()["count"], "entries")
+
+def test_reminder_add():
+    r = httpx.post("http://127.0.0.1:8001/navix/reminder/add", json={
+        "message": "test reminder",
+        "hour": 23,
+        "minute": 59
+    })
+    assert r.status_code == 200
+    print("Reminder OK")
