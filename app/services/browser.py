@@ -1,4 +1,6 @@
 import asyncio
+import httpx
+import re
 from playwright.async_api import async_playwright, Browser, Page
 from loguru import logger
 from typing import Optional
@@ -113,6 +115,14 @@ async def scroll_down():
     except Exception as e:
         return f"Could not scroll: {e}"
 
+async def scroll_up() -> str:
+    try:
+        page = await get_page()
+        await page.keyboard.press("PageUp")
+        return "Scrolled up"
+    except Exception as e:
+        return f"Could not scroll: {e}"
+
 async def go_back():
     try:
         page = await get_page()
@@ -120,3 +130,111 @@ async def go_back():
         return "Went back"
     except Exception as e:
         return f"Could not go back: {e}"
+
+async def open_new_tab(url: str = "https://www.google.com") -> str:
+    try:
+        browser = await get_browser()
+        context = browser.contexts[0] if browser.contexts else await browser.new_context()
+        new_page = await context.new_page()
+        if not url.startswith("http"):
+            url = "https://" + url
+        await new_page.goto(url, wait_until="domcontentloaded", timeout=15000)
+        title = await new_page.title()
+        logger.info(f"New tab opened: {url}")
+        return f"Opened new tab: {title}"
+    except Exception as e:
+        logger.error(f"New tab error: {e}")
+        return f"Could not open new tab"
+
+async def open_new_window(url: str = "https://www.google.com") -> str:
+    try:
+        browser = await get_browser()
+        context = await browser.new_context(viewport=None)
+        new_page = await context.new_page()
+        if not url.startswith("http"):
+            url = "https://" + url
+        await new_page.goto(url, wait_until="domcontentloaded", timeout=15000)
+        title = await new_page.title()
+        logger.info(f"New window opened: {url}")
+        return f"Opened new window: {title}"
+    except Exception as e:
+        logger.error(f"New window error: {e}")
+        return f"Could not open new window"
+
+async def search_youtube_and_play(query: str) -> str:
+    try:
+        page = await get_page()
+        url = f"https://www.youtube.com/results?search_query={query.replace(' ', '+')}"
+        await page.goto(url, wait_until="domcontentloaded", timeout=15000)
+        await page.wait_for_selector("ytd-video-renderer", timeout=5000)
+        await page.click("ytd-video-renderer a#video-title")
+        logger.info(f"Playing YouTube: {query}")
+        return f"Playing {query} on YouTube"
+    except Exception as e:
+        logger.error(f"YouTube play error: {e}")
+        return f"Opened YouTube search for {query}"
+
+async def get_news() -> list:
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(
+                "https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en",
+                headers={"User-Agent": "Mozilla/5.0"}
+            )
+            titles = re.findall(r"<title><!\[CDATA\[(.+?)\]\]></title>", r.text)
+            return titles[1:6]
+    except Exception as e:
+        logger.error(f"News error: {e}")
+        return ["Could not fetch news right now"]
+
+async def search_wikipedia(query: str) -> str:
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(
+                "https://en.wikipedia.org/api/rest_v1/page/summary/" +
+                query.replace(" ", "_"),
+                headers={"User-Agent": "NAVIX-AI/1.0"}
+            )
+            if r.status_code == 200:
+                data = r.json()
+                extract = data.get("extract", "")
+                sentences = extract.split(". ")
+                return ". ".join(sentences[:3]) + "."
+            return f"Could not find Wikipedia article for {query}"
+    except Exception as e:
+        logger.error(f"Wikipedia error: {e}")
+        return f"Could not search Wikipedia for {query}"
+
+async def zoom_in() -> str:
+    try:
+        page = await get_page()
+        await page.keyboard.press("Control+=")
+        return "Zoomed in"
+    except Exception as e:
+        return f"Could not zoom: {e}"
+
+async def zoom_out() -> str:
+    try:
+        page = await get_page()
+        await page.keyboard.press("Control+-")
+        return "Zoomed out"
+    except Exception as e:
+        return f"Could not zoom: {e}"
+
+async def refresh_page() -> str:
+    try:
+        page = await get_page()
+        await page.reload()
+        return "Page refreshed"
+    except Exception as e:
+        return f"Could not refresh: {e}"
+
+async def close_tab() -> str:
+    try:
+        page = await get_page()
+        await page.close()
+        global _page
+        _page = None
+        return "Tab closed"
+    except Exception as e:
+        return f"Could not close tab: {e}"
