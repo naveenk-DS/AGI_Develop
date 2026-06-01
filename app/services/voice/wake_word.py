@@ -57,19 +57,27 @@ def start_wake_word_listener():
                     int(CHUNK_DURATION * SAMPLE_RATE),
                     samplerate=SAMPLE_RATE,
                     channels=1,
-                    dtype="float32"
+                    dtype="float32",
+                    device=1
                 )
                 sd.wait()
                 audio = chunk.flatten()
 
-                # always transcribe — no energy gate
+                # only transcribe if sound is loud enough
+                energy = float(np.sqrt(np.mean(audio**2)))
+                if energy < 0.001:
+                    continue
+
                 text = transcribe_audio(audio)
-                if text and text.strip():
-                    logger.debug(f"Heard: {text}")
-                    if _check_wake_word(text):
-                        logger.info(f"Wake word detected: {text}")
-                        for cb in _wake_callbacks:
-                            cb(text)
+                if not text or len(text.strip()) < 2:
+                    continue
+
+                logger.debug(f"Heard: {text}")
+
+                if _check_wake_word(text):
+                    logger.info(f"Wake word detected: {text}")
+                    for cb in _wake_callbacks:
+                        cb(text)
 
             except Exception as e:
                 logger.error(f"Wake word error: {e}")
