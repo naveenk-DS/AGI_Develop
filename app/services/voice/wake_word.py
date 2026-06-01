@@ -29,11 +29,14 @@ def add_wake_callback(callback):
 def _check_wake_word(text: str) -> bool:
     text_lower = text.lower().strip()
     WAKE_WORDS = [
-        "jarvis", "hey jarvis",
-        "navix", "hey navix", "navix ai",
-        "navi", "hey navi",
-        "navis", "nabix", "navirus",  # common misrecognitions
-        "ஜார்விஸ்", "நவிக்ஸ்"
+        # Original
+        "navix", "hey navix", "navi", "hey navi",
+        # Your name as wake word
+        "naveen", "hey naveen", "hi naveen",
+        # Common misrecognitions of Naveen
+        "navin", "naven", "navine", "kevin",
+        # Tamil
+        "நவீன்", "ஜார்விஸ்"
     ]
     for word in WAKE_WORDS:
         if word in text_lower:
@@ -47,7 +50,7 @@ def start_wake_word_listener():
     global _listening
     _listening = True
     _stop_event.clear()
-    logger.info("Wake word listener started — say 'Hey NAVIX AI'")
+    logger.info("Wake word listener started — say 'Naveen' to activate")
 
     def listen_loop():
         while not _stop_event.is_set():

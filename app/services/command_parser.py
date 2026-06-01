@@ -1,8 +1,111 @@
 import re
+import os
+import subprocess
+import glob
 from loguru import logger
+
+# ── App Definitions ───────────────────────────────────────────────────────────
+
+def _get_username() -> str:
+    return os.environ.get("USERNAME", "user")
+
+APPS = {
+    # Development
+    "vs code":      r"C:\Users\{user}\AppData\Local\Programs\Microsoft VS Code\Code.exe",
+    "vscode":       r"C:\Users\{user}\AppData\Local\Programs\Microsoft VS Code\Code.exe",
+    "visual studio code": r"C:\Users\{user}\AppData\Local\Programs\Microsoft VS Code\Code.exe",
+    "notepad":      "notepad.exe",
+    "notepad++":    r"C:\Program Files\Notepad++\notepad++.exe",
+
+    # Browsers
+    "chrome":       r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+    "google chrome": r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+    "firefox":      r"C:\Program Files\Mozilla Firefox\firefox.exe",
+    "edge":         r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+
+    # Music & Media
+    "spotify":      r"C:\Users\{user}\AppData\Roaming\Spotify\Spotify.exe",
+    "vlc":          r"C:\Program Files\VideoLAN\VLC\vlc.exe",
+
+    # Communication
+    "whatsapp":     r"C:\Users\{user}\AppData\Local\WhatsApp\WhatsApp.exe",
+    "telegram":     r"C:\Users\{user}\AppData\Roaming\Telegram Desktop\Telegram.exe",
+    "discord":      r"C:\Users\{user}\AppData\Local\Discord\app-*\Discord.exe",
+    "zoom":         r"C:\Users\{user}\AppData\Roaming\Zoom\bin\Zoom.exe",
+
+    # System
+    "calculator":   "calc.exe",
+    "paint":        "mspaint.exe",
+    "file explorer": "explorer.exe",
+    "explorer":     "explorer.exe",
+    "task manager": "taskmgr.exe",
+    "control panel": "control.exe",
+    "settings":     "ms-settings:",
+    "command prompt": "cmd.exe",
+    "powershell":   "powershell.exe",
+    "snipping tool": "snippingtool.exe",
+
+    # Office
+    "word":         r"C:\Program Files\Microsoft Office\root\Office16\WINWORD.EXE",
+    "excel":        r"C:\Program Files\Microsoft Office\root\Office16\EXCEL.EXE",
+    "powerpoint":   r"C:\Program Files\Microsoft Office\root\Office16\POWERPNT.EXE",
+    "outlook":      r"C:\Program Files\Microsoft Office\root\Office16\OUTLOOK.EXE",
+
+    # Other
+    "steam":        r"C:\Program Files (x86)\Steam\steam.exe",
+    "obs":          r"C:\Program Files\obs-studio\bin\64bit\obs64.exe",
+    "postman":      r"C:\Users\{user}\AppData\Local\Postman\Postman.exe",
+}
+
+def _find_app_path(app_name: str) -> str:
+    username = _get_username()
+    path = APPS.get(app_name, "")
+    if not path:
+        return ""
+    path = path.replace("{user}", username)
+    if "*" in path:
+        matches = glob.glob(path)
+        return matches[0] if matches else ""
+    return path
+
+def _check_app_command(text: str) -> dict:
+    if not any(w in text for w in ["open", "launch", "start", "run"]):
+        return None
+    clean = text
+    for w in ["open", "launch", "start", "run", "please", "can you"]:
+        clean = clean.replace(w, "").strip()
+    for app_name in APPS.keys():
+        if app_name in clean:
+            return {"action": "open_app", "app_name": app_name}
+    return None
+
+async def launch_app(app_name: str) -> str:
+    app_name = app_name.lower().strip()
+    path = _find_app_path(app_name)
+    try:
+        if path.startswith("ms-"):
+            subprocess.Popen(["start", path], shell=True)
+        elif path and os.path.exists(path):
+            subprocess.Popen([path])
+        elif path and not os.path.isabs(path):
+            subprocess.Popen(path, shell=True)
+        else:
+            subprocess.Popen(app_name, shell=True)
+        logger.info(f"Launched: {app_name}")
+        return f"Opening {app_name}"
+    except Exception as e:
+        logger.error(f"App launch error: {e}")
+        return f"Could not open {app_name}"
+
+# ── Command Parser ────────────────────────────────────────────────────────────
 
 def parse_browser_command(text: str) -> dict:
     text_lower = text.lower().strip()
+
+    # App launch — check first
+    app_cmd = _check_app_command(text_lower)
+    if app_cmd:
+        return app_cmd
 
     # News
     if any(w in text_lower for w in ["news", "today's news", "latest news", "what's happening"]):
@@ -17,12 +120,9 @@ def parse_browser_command(text: str) -> dict:
         return {"action": "wikipedia", "query": wiki_match.group(1).strip()}
 
     # YouTube play
-    play_match = re.search(
-        r"(?:play|play on youtube)\s+(.+)",
-        text_lower
-    )
-    if play_match and "youtube" in text_lower or "play" in text_lower:
-        query = play_match.group(1) if play_match else None
+    play_match = re.search(r"(?:play|play on youtube)\s+(.+)", text_lower)
+    if play_match and ("youtube" in text_lower or "play" in text_lower):
+        query = play_match.group(1)
         if query:
             return {"action": "youtube_play", "query": query}
 
@@ -54,25 +154,25 @@ def parse_browser_command(text: str) -> dict:
         if search_match:
             return {"action": "search", "query": search_match.group(1).strip()}
 
-    # Open specific sites
+    # Open specific websites
     if "open" in text_lower:
         sites = {
-            "youtube": "https://youtube.com",
-            "google": "https://google.com",
-            "github": "https://github.com",
-            "gmail": "https://gmail.com",
-            "whatsapp": "https://web.whatsapp.com",
-            "twitter": "https://twitter.com",
-            "linkedin": "https://linkedin.com",
-            "netflix": "https://netflix.com",
-            "spotify": "https://open.spotify.com",
-            "chatgpt": "https://chat.openai.com",
-            "wikipedia": "https://wikipedia.org",
-            "bbc": "https://bbc.com",
-            "cnn": "https://cnn.com",
-            "reddit": "https://reddit.com",
+            "youtube":      "https://youtube.com",
+            "google":       "https://google.com",
+            "github":       "https://github.com",
+            "gmail":        "https://gmail.com",
+            "whatsapp":     "https://web.whatsapp.com",
+            "twitter":      "https://twitter.com",
+            "linkedin":     "https://linkedin.com",
+            "netflix":      "https://netflix.com",
+            "spotify":      "https://open.spotify.com",
+            "chatgpt":      "https://chat.openai.com",
+            "wikipedia":    "https://wikipedia.org",
+            "bbc":          "https://bbc.com",
+            "cnn":          "https://cnn.com",
+            "reddit":       "https://reddit.com",
             "stackoverflow": "https://stackoverflow.com",
-            "instagram": "https://instagram.com",
+            "instagram":    "https://instagram.com",
         }
         for site, url in sites.items():
             if site in text_lower:
@@ -103,6 +203,8 @@ def parse_browser_command(text: str) -> dict:
     return {"action": "none"}
 
 
+# ── Command Executor ──────────────────────────────────────────────────────────
+
 async def execute_browser_command(text: str) -> str:
     from app.services.browser import (
         open_url, search_google, open_youtube,
@@ -116,16 +218,17 @@ async def execute_browser_command(text: str) -> str:
     cmd = parse_browser_command(text)
     logger.info(f"Command parsed: {cmd}")
 
-    if cmd["action"] == "news":
+    if cmd["action"] == "open_app":
+        return await launch_app(cmd["app_name"])
+
+    elif cmd["action"] == "news":
         headlines = await get_news()
         if headlines:
-            result = "Here are today's top news headlines. " + ". ".join(headlines)
-            return result
+            return "Here are today's top news headlines. " + ". ".join(headlines)
         return "Could not fetch news right now"
 
     elif cmd["action"] == "wikipedia":
-        summary = await search_wikipedia(cmd["query"])
-        return summary
+        return await search_wikipedia(cmd["query"])
 
     elif cmd["action"] == "youtube_play":
         return await search_youtube_and_play(cmd["query"])

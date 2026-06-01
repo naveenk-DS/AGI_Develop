@@ -30,14 +30,23 @@ async def process_command(text: str) -> str:
         async with httpx.AsyncClient(timeout=60) as client:
             r = await client.post(f"{BASE_URL}/agent/run", json={
                 "session_id": SESSION_ID,
-                "message": text
+                "message": text,
+                "system": (
+                    "You are NAVIX, a friendly personal AI assistant like Google Assistant or Alexa. "
+                    "Your user's name is Naveen. "
+                    "Keep responses SHORT — 1 to 3 sentences maximum. "
+                    "Be natural, warm and conversational. "
+                    "Never use bullet points or numbered lists in spoken responses. "
+                    "Speak like a helpful friend, not a formal assistant. "
+                    "If explaining something, keep it simple and brief."
+                )
             })
             if r.status_code == 200:
                 return r.json()["answer"]
-            return "Sorry I could not process that"
+            return "Sorry, I could not process that"
     except Exception as e:
         logger.error(f"Agent error: {e}")
-        return "Sorry there was an error"
+        return "Sorry, something went wrong"
 
 async def navix_session():
     from app.services.planner import save_daily_plan, get_todays_plan
@@ -91,7 +100,7 @@ def on_wake_word(text: str):
 
 def start_navix():
     logger.info("Starting NAVIX...")
-    speak("NAVIX online. Say Hey NAVIX to activate.")
+    speak("NAVIX online. Say Naveen to activate.")
     add_wake_callback(on_wake_word)
     start_wake_word_listener()
     logger.info("NAVIX ready — listening for wake word")
@@ -100,10 +109,38 @@ def start_navix():
 async def handle_wake_word(text: str):
     from app.services.voice.pin_auth import authenticate, is_authenticated
     from app.services.voice.speaker import speak
+    from app.services.command_parser import execute_browser_command
+
+    import random
+
+    LISTENING_PHRASES = [
+        "Mmm?",
+        "Yes?",
+        "Tell me.",
+        "Go ahead.",
+        "I'm here.",
+        "What's up?",
+    ]
+
+    FOLLOWUP_PHRASES = [
+        "What else can I do for you?",
+        "Anything else?",
+        "What's next?",
+        "Need anything else?",
+        "I'm listening.",
+        "What else?",
+    ]
+
+    DONE_PHRASES = [
+        "Done! What else?",
+        "Got it. Anything else?",
+        "Sure! Need anything more?",
+        "Alright! What's next?",
+    ]
 
     lang_config = SUPPORTED_LANGUAGES[USER_PROFILE["preferred_language"]]
 
-    # check if already authenticated
+    # PIN check
     if not is_authenticated():
         speak("Please enter your PIN to activate NAVIX")
         success = authenticate()
@@ -114,48 +151,64 @@ async def handle_wake_word(text: str):
     else:
         speak(lang_config["wake_response"])
 
-    await asyncio.sleep(0.3)
-    command = listen_once(duration=7)
+    # conversation loop
+    while True:
+        await asyncio.sleep(0.2)
+        command = listen_once(duration=6)
 
-    if not command:
-        speak("I did not hear anything. Please try again.")
-        return
+        if not command or not command.strip():
+            speak(random.choice(LISTENING_PHRASES))
+            continue
 
-    logger.info(f"Command received: {command}")
+        command_lower = command.lower().strip()
+        logger.info(f"Command received: {command}")
 
-     # lock command
-    if any(w in command.lower() for w in ["lock", "lock navix", "goodbye", "bye navix"]):
-        from app.services.voice.pin_auth import lock
-        lock()
-        speak("NAVIX locked. Say Hey Navix to unlock.")
-        return
+        # stop conversation
+        if any(w in command_lower for w in [
+            "stop", "bye", "goodbye", "that's all",
+            "exit", "close navix", "thank you stop",
+            "ok bye", "okay bye"
+        ]):
+            speak("Okay Naveen. I am always here when you need me. Goodbye.")
+            break
 
-    # reminder command
-    import re
-    remind_match = re.search(
-        r"remind me (?:to )?(.+?) at (\d+)(?::(\d+))?\s*(am|pm)?",
-        command.lower()
-    )
-    if remind_match:
-        from app.services.reminder import add_reminder
-        message = remind_match.group(1)
-        hour = int(remind_match.group(2))
-        minute = int(remind_match.group(3) or 0)
-        ampm = remind_match.group(4)
-        if ampm == "pm" and hour < 12:
-            hour += 12
-        await add_reminder(message, hour, minute)
-        speak(f"Reminder set. I will remind you to {message} at {hour}:{minute:02d}")
-        return
+        # lock
+        if any(w in command_lower for w in ["lock", "lock navix"]):
+            from app.services.voice.pin_auth import lock
+            lock()
+            speak("NAVIX locked. Say Naveen to unlock anytime.")
+            break
 
-    # check if browser command
-    from app.services.command_parser import execute_browser_command
-    browser_result = await execute_browser_command(command)
+        # reminder
+        import re
+        remind_match = re.search(
+            r"remind me (?:to )?(.+?) at (\d+)(?::(\d+))?\s*(am|pm)?",
+            command_lower
+        )
+        if remind_match:
+            from app.services.reminder import add_reminder
+            message = remind_match.group(1)
+            hour = int(remind_match.group(2))
+            minute = int(remind_match.group(3) or 0)
+            ampm = remind_match.group(4)
+            if ampm == "pm" and hour < 12:
+                hour += 12
+            await add_reminder(message, hour, minute)
+            speak(f"Done. I will remind you to {message} at {hour}:{minute:02d}. Anything else?")
+            continue
 
-    if browser_result:
-        speak(browser_result)
-        return
+        # browser and app commands
+        browser_result = await execute_browser_command(command)
+        if browser_result:
+            speak(browser_result)
+            speak(random.choice(DONE_PHRASES))
+            continue
 
-    # send to AI agent
-    response = await process_command(command)
-    speak(response)
+        # AI agent for questions and conversation
+        try:
+            response = await process_command(command)
+            speak(response)
+            speak(random.choice(FOLLOWUP_PHRASES))
+        except Exception as e:
+            logger.error(f"Agent error: {e}")
+            speak("Sorry I could not do that. What else can I help with?")

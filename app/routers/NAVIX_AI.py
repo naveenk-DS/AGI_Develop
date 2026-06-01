@@ -181,3 +181,18 @@ async def add_reminder_endpoint(body: dict):
         body.get("minute", 0)
     )
     return {"status": "reminder added"}
+
+
+@router.post("/app/open")
+async def open_app(body: CommandRequest):
+    try:
+        from app.services.command_parser import launch_app
+        result = await launch_app(body.command.lower())
+        return {"status": "ok", "result": result}
+    except Exception as e:
+        return {"status": "error", "result": str(e)}
+
+@router.get("/app/list")
+async def list_apps():
+    from app.services.command_parser import APPS
+    return {"apps": list(APPS.keys()), "count": len(APPS)}

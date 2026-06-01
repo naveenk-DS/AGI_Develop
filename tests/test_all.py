@@ -786,3 +786,24 @@ def test_reminder_add():
     })
     assert r.status_code == 200
     print("Reminder OK")
+
+
+def test_app_list():
+    r = httpx.get("http://127.0.0.1:8001/navix/app/list")
+    assert r.status_code == 200
+    assert "apps" in r.json()
+    print("App list OK:", r.json()["count"], "apps")
+
+def test_open_calculator():
+    r = httpx.post("http://127.0.0.1:8001/navix/app/open", json={
+        "command": "calculator"
+    })
+    assert r.status_code == 200
+    print("Calculator OK:", r.json()["result"])
+
+def test_app_command_via_browser():
+    r = httpx.post("http://127.0.0.1:8001/navix/browser/command", json={
+        "command": "open notepad"
+    })
+    assert r.status_code == 200
+    print("App command OK:", r.json()["result"])
