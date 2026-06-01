@@ -14,11 +14,10 @@ _stop_event = threading.Event()
 _handling = threading.Event()  # set while a wake-word command is being handled
 
 WAKE_WORDS = [
-    # Primary wake words
-    "naveen", "hey naveen",
-    "navix", "hey navix", "navix ai", "hey navix ai",
-    "navi", "hey navi",
-    "ஜார்விஸ்", "நவிக்ஸ்"
+    "navix", "hey navix", "navi", "hey navi",
+    "navik", "nabix", "navicks", "navic",
+    "activate", "computer", "start",
+    # add whatever Whisper hears when you say hey navix
 ]
 ENERGY_THRESHOLD = 0.02   # lowered: catches quieter speech
 SAMPLE_RATE = 16000
