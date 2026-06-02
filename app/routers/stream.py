@@ -58,25 +58,22 @@ async def stream_chat(body: StreamRequest, db: AsyncSession = Depends(get_db)):
 
 @router.post("/agent")
 async def stream_agent(body: StreamRequest, db: AsyncSession = Depends(get_db)):
-    from app.services.agent import decide_tool
-    from app.services.qdrant import search
-    from app.services.ollama import embed
-
     history = await get_history(db, body.session_id)
-    tool = await decide_tool(body.message)
+
+    # Simple tool routing matching core.graph.router_node logic
+    msg = body.message.lower()
+    if any(w in msg for w in ["document", "file", "pdf", "what does", "according to"]):
+        tool = "rag"
+    elif any(w in msg for w in ["open", "search", "youtube", "google", "browser"]):
+        tool = "browser"
+    else:
+        tool = "chat"
+
     full_reply = []
 
     async def generate():
-        if tool == "rag_search":
-            question_embedding = await embed(body.message)
-            chunks = search(question_embedding, top_k=3)
-            context = "\n\n".join(chunks) if chunks else ""
-            prompt = f"Context:\n{context}\n\nQuestion: {body.message}" if context else body.message
-        else:
-            prompt = body.message
-
         async for token in chat_stream(
-            prompt=prompt,
+            prompt=body.message,
             model=body.model,
             system=body.system,
             history=history

@@ -27,25 +27,26 @@ def get_greeting() -> str:
 
 async def process_command(text: str) -> str:
     try:
-        async with httpx.AsyncClient(timeout=60) as client:
-            r = await client.post(f"{BASE_URL}/agent/run", json={
-                "session_id": SESSION_ID,
-                "message": text,
-                "system": (
-                    "You are NAVIX, a friendly personal AI assistant like Google Assistant or Alexa. "
-                    "Your user's name is Naveen. "
-                    "Keep responses SHORT — 1 to 3 sentences maximum. "
-                    "Be natural, warm and conversational. "
-                    "Never use bullet points or numbered lists in spoken responses. "
-                    "Speak like a helpful friend, not a formal assistant. "
-                    "If explaining something, keep it simple and brief."
-                )
-            })
-            if r.status_code == 200:
-                return r.json()["answer"]
-            return "Sorry, I could not process that"
+        from core.graph import get_graph
+        from app.services.personal_memory import get_context_for_ai
+
+        personal_context = await get_context_for_ai()
+        graph = get_graph()
+
+        state = {
+            "messages": [],
+            "user_input": text,
+            "emotion": "neutral",
+            "tool": "chat",
+            "response": "",
+            "personal_context": personal_context
+        }
+
+        result = await graph.ainvoke(state)
+        return result["response"]
+
     except Exception as e:
-        logger.error(f"Agent error: {e}")
+        logger.error(f"Graph error: {e}")
         return "Sorry, something went wrong"
 
 async def navix_session():
