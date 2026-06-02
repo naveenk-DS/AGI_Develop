@@ -196,3 +196,42 @@ async def open_app(body: CommandRequest):
 async def list_apps():
     from app.services.command_parser import APPS
     return {"apps": list(APPS.keys()), "count": len(APPS)}
+
+
+@router.post("/pc/command")
+async def pc_command(body: CommandRequest):
+    try:
+        from app.services.pc_command_parser import execute_pc_command
+        result = await execute_pc_command(body.command)
+        return {"status": "ok", "result": result or "Command not recognized"}
+    except Exception as e:
+        return {"status": "error", "result": str(e)}
+
+@router.post("/pc/type")
+async def pc_type(body: CommandRequest):
+    try:
+        from app.services.pc_control import type_text
+        result = type_text(body.command)
+        return {"status": "ok", "result": result}
+    except Exception as e:
+        return {"status": "error", "result": str(e)}
+
+@router.post("/pc/screenshot")
+async def pc_screenshot():
+    try:
+        import os
+        os.makedirs("F:/naveen/AGI_Start/screenshots", exist_ok=True)
+        from app.services.pc_control import take_screenshot
+        result = take_screenshot("F:/naveen/AGI_Start/screenshots/screenshot.png")
+        return {"status": "ok", "result": result}
+    except Exception as e:
+        return {"status": "error", "result": str(e)}
+
+@router.post("/pc/key")
+async def pc_key(body: CommandRequest):
+    try:
+        from app.services.pc_control import press_key
+        result = press_key(body.command)
+        return {"status": "ok", "result": result}
+    except Exception as e:
+        return {"status": "error", "result": str(e)}

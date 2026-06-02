@@ -112,6 +112,7 @@ async def handle_wake_word(text: str):
     from app.services.command_parser import execute_browser_command
 
     import random
+    from app.services.pc_command_parser import execute_pc_command
 
     LISTENING_PHRASES = [
         "Mmm?",
@@ -139,6 +140,7 @@ async def handle_wake_word(text: str):
     ]
 
     lang_config = SUPPORTED_LANGUAGES[USER_PROFILE["preferred_language"]]
+    
 
     # PIN check
     if not is_authenticated():
@@ -195,6 +197,12 @@ async def handle_wake_word(text: str):
                 hour += 12
             await add_reminder(message, hour, minute)
             speak(f"Done. I will remind you to {message} at {hour}:{minute:02d}. Anything else?")
+            continue
+
+        pc_result = await execute_pc_command(command)
+        if pc_result:
+            speak(random.choice(DONE_PHRASES))
+            speak(random.choice(FOLLOWUP_PHRASES))
             continue
 
         # browser and app commands
