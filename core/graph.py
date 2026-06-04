@@ -2,7 +2,7 @@ from typing import TypedDict, Annotated, Literal
 from langgraph.graph import StateGraph, END
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate
-from core.llm import get_llm
+from core.llm import get_llm, get_embeddings
 from core.rag_chain import get_rag_chain
 from core.emotion import detect_emotion, get_emotional_prefix
 from app.services.personal_memory import get_context_for_ai

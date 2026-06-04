@@ -8,6 +8,7 @@ from app.db.memory import get_history, save_message
 from app.db.logger import log_event
 from loguru import logger
 import time
+from core.graph import get_graph
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 

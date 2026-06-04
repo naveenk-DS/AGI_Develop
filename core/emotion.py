@@ -1,14 +1,22 @@
-from transformers import pipeline
+import sys
+import os
+sys.path.insert(0, r'C:\Users\gowth\AppData\Local\Programs\Python\Python312\Lib\site-packages')
+
+from transformers import pipeline as hf_pipeline
 from functools import lru_cache
 from loguru import logger
+import torch
+
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 @lru_cache(maxsize=1)
 def get_emotion_classifier():
-    logger.info("Loading emotion model...")
-    return pipeline(
+    logger.info(f"Loading emotion model on {DEVICE}...")
+    return hf_pipeline(
         "text-classification",
         model="j-hartmann/emotion-english-distilroberta-base",
-        top_k=1
+        top_k=1,
+        device=0 if DEVICE == "cuda" else -1
     )
 
 def detect_emotion(text: str) -> str:

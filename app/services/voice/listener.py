@@ -13,10 +13,17 @@ _model = None
 def get_model():
     global _model
     if _model is None:
-        logger.info("Loading Faster-Whisper model...")
+        import torch
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        compute = "float16" if device == "cuda" else "int8"
+        logger.info(f"Loading Faster-Whisper on {device}...")
         from faster_whisper import WhisperModel
-        _model = WhisperModel("base", device="cpu", compute_type="int8")
-        logger.info("Faster-Whisper loaded")
+        _model = WhisperModel(
+            "medium",        # upgrade from base to medium — much better accuracy
+            device=device,
+            compute_type=compute
+        )
+        logger.info(f"Faster-Whisper loaded on {device}")
     return _model
 
 def record_audio(duration: int = 5) -> np.ndarray:

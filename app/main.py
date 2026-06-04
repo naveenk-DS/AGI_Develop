@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from loguru import logger
@@ -49,34 +53,68 @@ logger.add("logs/app.log", rotation="10 MB",
 # add at top of main.py
 executor = ThreadPoolExecutor(max_workers=1)
 
+
+# preload all AI models on startup — defined BEFORE lifespan so it can be referenced
+async def preload_models():
+    try:
+        from core.llm import get_llm, get_embeddings
+        from core.graph import get_graph
+        from core.emotion import get_emotion_classifier
+
+        logger.info("Preloading LLM...")
+        get_llm()
+
+        logger.info("Preloading embeddings...")
+        get_embeddings()
+
+        logger.info("Preloading graph...")
+        get_graph()
+
+        logger.info("Preloading emotion model...")
+        get_emotion_classifier()
+
+        logger.info("All models preloaded")
+    except Exception as e:
+        logger.warning(f"Preload warning: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # create DB tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database tables ready")
 
-    # start file watcher in background thread
     from app.services.watcher import start_watcher
     loop = asyncio.get_event_loop()
     loop.run_in_executor(executor, start_watcher)
     logger.info("File watcher started")
 
-    asyncio.create_task(preload_model("llama3"))
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+    from app.services.backup import run_backup
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(run_backup, "cron", hour=3, minute=0)
+    scheduler.start()
+    logger.info("Scheduler started")
+
+    asyncio.create_task(preload_models())
     logger.info("Model preload started")
+
     asyncio.create_task(start_health_monitor(interval=60))
     logger.info("Health monitor started")
 
     logger.info("MyAIProduct API started")
     yield
+
+    scheduler.shutdown()
     from app.services.watcher import stop_event
     stop_event.set()
     executor.shutdown(wait=True)
     await engine.dispose()
     logger.info("API shutdown")
 
+
 app = FastAPI(
-    title="AGI_Develop_From_Scartch",
+    title="AGI_Develop_From_Scratch",
     version="1.0.0",
     lifespan=lifespan
 )
