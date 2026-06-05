@@ -30,6 +30,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.services.health_monitor import start_health_monitor
 from app.services.ollama import preload_model
 from app.routers import NAVIX_AI
+# from core.mcp_tools import register_all_tools
 
 
 from fastapi.exceptions import RequestValidationError
@@ -100,6 +101,10 @@ async def lifespan(app: FastAPI):
     from app.services.continual_learning import watch_and_learn
     asyncio.create_task(watch_and_learn())
     logger.info("Continual learning started")
+
+    from core.mcp_tools import register_all_tools
+    register_all_tools()
+    logger.info("MCP tools registered")
 
     asyncio.create_task(preload_models())
     logger.info("Model preload started")

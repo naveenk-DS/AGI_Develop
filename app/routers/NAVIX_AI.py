@@ -376,3 +376,33 @@ async def learning_log():
         return {"log": "No learning log yet"}
     lines = log.read_text(encoding="utf-8").strip().split("\n")
     return {"log": lines[-20:], "total_entries": len(lines)}
+
+
+@router.get("/mcp/tools")
+async def mcp_list_tools():
+    from core.mcp_tools import list_tools
+    tools = list_tools()
+    return {"tools": tools, "count": len(tools)}
+
+@router.post("/mcp/execute")
+async def mcp_execute(body: dict):
+    from core.mcp_tools import execute_tool
+    name = body.get("tool")
+    params = body.get("params", {})
+    result = await execute_tool(name, **params)
+    return {"tool": name, "result": result}
+
+@router.post("/mcp/route")
+async def mcp_route(body: CommandRequest):
+    from core.mcp_tools import route_to_tool, execute_tool
+    tool_name = await route_to_tool(body.command)
+    if not tool_name:
+        return {"tool": "none", "result": "No matching tool found"}
+    result = await execute_tool(tool_name)
+    return {"tool": tool_name, "result": result}
+
+@router.post("/rag/advanced")
+async def advanced_rag(body: dict):
+    from core.advanced_rag import advanced_rag_query
+    result = await advanced_rag_query(body.get("question", ""))
+    return {"answer": result}

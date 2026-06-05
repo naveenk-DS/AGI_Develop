@@ -19,29 +19,28 @@ class AgentState(TypedDict):
 
 def router_node(state: AgentState) -> AgentState:
     user_input = state["user_input"].lower()
-
-    # detect emotion
     emotion = detect_emotion(state["user_input"])
 
-    # route to correct tool
+    # smart routing
     if any(w in user_input for w in [
         "document", "file", "pdf", "what does", "according to",
-        "in the document", "you ingested"
+        "in the document", "search documents", "find in"
     ]):
         tool = "rag"
     elif any(w in user_input for w in [
         "open", "search", "youtube", "google", "news",
-        "wikipedia", "browser", "website", "play"
+        "wikipedia", "browser", "website", "play", "click"
     ]):
         tool = "browser"
     elif any(w in user_input for w in [
-        "click", "type", "press", "scroll", "screenshot",
-        "volume", "minimize", "maximize", "window"
+        "type", "press", "scroll", "screenshot", "volume",
+        "minimize", "maximize", "window", "keyboard"
     ]):
         tool = "pc"
     elif any(w in user_input for w in [
         "remember", "my favourite", "my friend", "my family",
-        "birthday", "save this", "don't forget"
+        "birthday", "save this", "don't forget", "i feel",
+        "my goal", "my mood"
     ]):
         tool = "memory"
     else:
@@ -50,30 +49,29 @@ def router_node(state: AgentState) -> AgentState:
     logger.info(f"Router → tool: {tool}, emotion: {emotion}")
     return {**state, "tool": tool, "emotion": emotion}
 
+
 async def rag_node(state: AgentState) -> AgentState:
     try:
         from app.services.world_model import record_interaction
-
-        # standard vector RAG
-        chain = get_rag_chain()
-        result = chain.invoke({"query": state["user_input"]})
-        vector_answer = result["result"] if isinstance(result, dict) else str(result)
-
-        # graph RAG — find connected concepts
+        from core.advanced_rag import advanced_rag_query
         from app.services.knowledge_graph import graph_search
+
+        # advanced RAG with hybrid search + reranking
+        vector_answer = await advanced_rag_query(state["user_input"])
+
+        # graph RAG
         graph_context = await graph_search(state["user_input"])
 
-        if graph_context:
-            # combine both sources
+        if graph_context and "could not" not in vector_answer.lower():
             llm = get_llm()
             from langchain_core.messages import HumanMessage, SystemMessage
             messages = [
-                SystemMessage(content="You are NAVIX. Answer using both sources. Keep it under 3 sentences."),
+                SystemMessage(content="Combine both answers into one clear response under 3 sentences."),
                 HumanMessage(content=(
-                    f"Question: {state['user_input']}\n\n"
-                    f"Vector search answer: {vector_answer}\n\n"
-                    f"Knowledge graph context:\n{graph_context}\n\n"
-                    f"Give the best combined answer:"
+                    f"Question: {state['user_input']}\n"
+                    f"Answer 1: {vector_answer}\n"
+                    f"Graph context: {graph_context}\n"
+                    f"Combined answer:"
                 ))
             ]
             combined = await llm.ainvoke(messages)
