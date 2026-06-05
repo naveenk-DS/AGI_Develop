@@ -77,18 +77,8 @@ async def close_tab() -> str:
 # ── News ──────────────────────────────────────────────────────────────────────
 
 async def get_news() -> list:
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            r = await client.get(
-                "https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en",
-                headers={"User-Agent": "Mozilla/5.0"}
-            )
-            titles = re.findall(r"<title><!\[CDATA\[(.+?)\]\]></title>", r.text)
-            clean = [t for t in titles[1:6] if len(t) > 10]
-            return clean if clean else ["Could not fetch news"]
-    except Exception as e:
-        logger.error(f"News error: {e}")
-        return ["Could not fetch news right now"]
+    from app.services.news_briefing import fetch_top_news
+    return await fetch_top_news(5)
 
 # ── Wikipedia ─────────────────────────────────────────────────────────────────
 

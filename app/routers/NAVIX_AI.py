@@ -235,3 +235,82 @@ async def pc_key(body: CommandRequest):
         return {"status": "ok", "result": result}
     except Exception as e:
         return {"status": "error", "result": str(e)}
+
+
+@router.get("/news/headlines")
+async def headlines():
+    import traceback
+    try:
+        from app.services.news_briefing import get_quick_headlines
+        result = await get_quick_headlines()
+        return {"headlines": result}
+    except Exception as e:
+        return {"headlines": f"Error: {str(e)}", "trace": traceback.format_exc()}
+
+@router.get("/news/briefing")
+async def morning_briefing():
+    try:
+        from app.services.news_briefing import build_morning_briefing
+        briefing = await build_morning_briefing()
+        return {"briefing": briefing}
+    except Exception as e:
+        return {"briefing": f"Error: {str(e)}"}
+
+@router.get("/news/ai")
+async def ai_news():
+    try:
+        from app.services.news_briefing import fetch_ai_news
+        news = await fetch_ai_news()
+        return {"ai_news": news}
+    except Exception as e:
+        return {"ai_news": [], "error": str(e)}
+@router.post("/screen/describe")
+async def screen_describe():
+    from app.services.screen_vision import what_is_on_screen
+    result = await what_is_on_screen()
+    return {"description": result}
+
+@router.post("/screen/read")
+async def screen_read():
+    from app.services.screen_vision import read_text_on_screen
+    result = await read_text_on_screen()
+    return {"text": result}
+
+@router.post("/screen/click")
+async def screen_click(body: CommandRequest):
+    from app.services.screen_vision import click_element_by_vision
+    result = await click_element_by_vision(body.command)
+    return {"result": result}
+
+@router.post("/screen/error")
+async def screen_error():
+    from app.services.screen_vision import analyze_error_on_screen
+    result = await analyze_error_on_screen()
+    return {"result": result}
+
+
+@router.get("/news/debug")
+async def news_debug():
+    import traceback
+    import httpx
+    import xml.etree.ElementTree as ET
+    results = {}
+    url = "https://feeds.bbci.co.uk/news/rss.xml"
+    try:
+        async with httpx.AsyncClient(timeout=15, follow_redirects=True, verify=False) as client:
+            r = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
+            results["status_code"] = r.status_code
+            results["content_length"] = len(r.text)
+            try:
+                root = ET.fromstring(r.text)
+                items = root.findall(".//item/title")
+                results["xml_items"] = len(items)
+                results["first_title"] = items[0].text if items else "none"
+            except Exception as xe:
+                results["xml_error"] = str(xe)
+                results["raw_start"] = r.text[:200]
+    except Exception as e:
+        results["error"] = str(e)
+        results["error_type"] = type(e).__name__
+        results["trace"] = traceback.format_exc()
+    return results

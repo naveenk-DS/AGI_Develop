@@ -1,3 +1,4 @@
+from app.services.voice.listener import DEVICE_ID
 import threading
 import sounddevice as sd
 import numpy as np
@@ -12,6 +13,11 @@ _listening = False
 _wake_callbacks = []
 _stop_event = threading.Event()
 _handling = threading.Event()  # set while a wake-word command is being handled
+
+_interrupt_callbacks = []
+
+def add_interrupt_callback(callback):
+    _interrupt_callbacks.append(callback)
 
 WAKE_WORDS = [
     "navix", "hey navix", "navi", "hey navi",
@@ -46,6 +52,15 @@ def _check_wake_word(text: str) -> bool:
 def _calculate_energy(audio: np.ndarray) -> float:
     return float(np.sqrt(np.mean(audio**2)))
 
+INTERRUPT_WORDS = [
+    "stop", "wait", "pause", "hold on",
+    "listen", "hey", "naveen", "quiet"
+]
+
+def _check_interrupt(text: str) -> bool:
+    text_lower = text.lower().strip()
+    return any(w in text_lower for w in INTERRUPT_WORDS)
+
 def start_wake_word_listener():
     global _listening
     _listening = True
@@ -60,12 +75,11 @@ def start_wake_word_listener():
                     samplerate=SAMPLE_RATE,
                     channels=1,
                     dtype="float32",
-                    device=1
+                    device=DEVICE_ID
                 )
                 sd.wait()
                 audio = chunk.flatten()
 
-                # only transcribe if sound is loud enough
                 energy = float(np.sqrt(np.mean(audio**2)))
                 if energy < 0.001:
                     continue
@@ -76,6 +90,17 @@ def start_wake_word_listener():
 
                 logger.debug(f"Heard: {text}")
 
+                # check if NAVIX is speaking and user wants to interrupt
+                from app.services.voice.speaker import is_speaking, interrupt_speech
+                if is_speaking() and _check_interrupt(text):
+                    logger.info(f"Interrupt detected: {text}")
+                    interrupt_speech()
+                    # signal interrupt to active conversation
+                    for cb in _interrupt_callbacks:
+                        cb(text)
+                    continue
+
+                # normal wake word check
                 if _check_wake_word(text):
                     logger.info(f"Wake word detected: {text}")
                     for cb in _wake_callbacks:

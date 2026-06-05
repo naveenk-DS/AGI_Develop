@@ -102,6 +102,40 @@ async def launch_app(app_name: str) -> str:
 def parse_browser_command(text: str) -> dict:
     text_lower = text.lower().strip()
 
+    # Screen understanding commands
+    if any(w in text_lower for w in [
+        "what is on my screen", "what's on my screen",
+        "describe my screen", "what do you see",
+        "look at my screen", "read my screen"
+    ]):
+        return {"action": "screen_describe"}
+
+    if any(w in text_lower for w in ["read text on screen", "read the screen", "read screen"]):
+        return {"action": "screen_read"}
+
+    if any(w in text_lower for w in ["any error", "error on screen", "what error"]):
+        return {"action": "screen_error"}
+
+    # Click by vision
+    click_vision_match = re.search(
+        r"click (?:the )?(.+?)(?:\s+on screen|\s+button|\s+link)?$",
+        text_lower
+    )
+    if click_vision_match and "click" in text_lower:
+        return {"action": "screen_click", "element": click_vision_match.group(1).strip()}
+
+    # News commands
+    if any(w in text_lower for w in [
+        "morning briefing", "news briefing", "daily briefing",
+        "what happened today", "today's briefing"
+    ]):
+        return {"action": "news_briefing"}
+
+    if any(w in text_lower for w in [
+        "ai news", "artificial intelligence news", "latest ai"
+    ]):
+        return {"action": "ai_news"}
+
     # App launch — check first
     app_cmd = _check_app_command(text_lower)
     if app_cmd:
@@ -272,5 +306,30 @@ async def execute_browser_command(text: str) -> str:
     elif cmd["action"] == "close":
         await close_browser()
         return "Browser closed"
+
+    elif cmd["action"] == "screen_describe":
+        from app.services.screen_vision import what_is_on_screen
+        return await what_is_on_screen()
+
+    elif cmd["action"] == "screen_read":
+        from app.services.screen_vision import read_text_on_screen
+        return await read_text_on_screen()
+
+    elif cmd["action"] == "screen_error":
+        from app.services.screen_vision import analyze_error_on_screen
+        return await analyze_error_on_screen()
+
+    elif cmd["action"] == "screen_click":
+        from app.services.screen_vision import click_element_by_vision
+        return await click_element_by_vision(cmd["element"])
+
+    elif cmd["action"] == "news_briefing":
+        from app.services.news_briefing import build_morning_briefing
+        return await build_morning_briefing()
+
+    elif cmd["action"] == "ai_news":
+        from app.services.news_briefing import fetch_ai_news
+        news = await fetch_ai_news()
+        return "Here is the latest AI news. " + ". ".join(news) if news else "No AI news found."
 
     return None

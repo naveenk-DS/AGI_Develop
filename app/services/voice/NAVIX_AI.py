@@ -1,14 +1,27 @@
 import asyncio
 import re
 import random
+import threading
 from datetime import datetime
 from loguru import logger
 from app.services.voice.language_config import USER_PROFILE, SUPPORTED_LANGUAGES
 from app.services.voice.speaker import speak
 from app.services.voice.listener import listen_once
 from app.services.voice.wake_word import start_wake_word_listener, add_wake_callback
-import httpx
 from navix_tray import set_tray_state, add_chat_message
+
+
+from app.services.voice.wake_word import add_interrupt_callback
+from app.services.voice.speaker import interrupt_speech
+
+_interrupted = threading.Event()
+
+def on_interrupt(text: str):
+    _interrupted.set()
+    interrupt_speech()
+
+# register once
+add_interrupt_callback(on_interrupt)
 
 BASE_URL = "http://127.0.0.1:8001"
 SESSION_ID = "navix-main"
@@ -76,6 +89,17 @@ async def navix_session():
             set_tray_state("talking")
             speak(f"{greeting}. No plan recorded. Say Naveen anytime to start.")
             add_chat_message("NAVIX", f"{greeting}. No plan recorded. Say Naveen anytime to start.")
+
+    # ── auto morning briefing between 6 AM and 9 AM ──────────────────────────
+    if 6 <= hour <= 9:
+        from app.services.news_briefing import build_morning_briefing
+        try:
+            briefing = await build_morning_briefing()
+            set_tray_state("talking")
+            speak(briefing)
+            add_chat_message("NAVIX", briefing)
+        except Exception as e:
+            logger.warning(f"Briefing error: {e}")
 
     if 18 <= hour <= 21:
         set_tray_state("talking")
