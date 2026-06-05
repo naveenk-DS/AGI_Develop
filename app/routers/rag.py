@@ -14,6 +14,9 @@ class IngestPathRequest(BaseModel):
     file_path: str
     doc_name: str = None
 
+class AdvancedQueryRequest(BaseModel):
+    question: str
+
 @router.post("/ingest")
 async def ingest(file: UploadFile = File(...)):
     content = await file.read()
@@ -47,4 +50,14 @@ async def query(body: QueryRequest):
         return {"question": body.question, "answer": answer}
     except Exception as e:
         logger.error(f"RAG query error: {e}")
+        return {"error": str(e)}
+
+@router.post("/advanced")
+async def advanced_query(body: AdvancedQueryRequest):
+    try:
+        from core.advanced_rag import advanced_rag_query
+        result = await advanced_rag_query(body.question)
+        return {"question": body.question, "answer": result}
+    except Exception as e:
+        logger.error(f"Advanced RAG error: {e}")
         return {"error": str(e)}

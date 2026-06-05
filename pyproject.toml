@@ -57,6 +57,7 @@ dependencies = [
     "uvicorn[standard]>=0.47.0",
     "watchdog>=6.0.0",
     "wikipedia-api>=0.15.0",
+    "rank-bm25",
 ]
 
 [dependency-groups]
