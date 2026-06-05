@@ -62,6 +62,7 @@ async def rag_node(state: AgentState) -> AgentState:
 
 async def chat_node(state: AgentState) -> AgentState:
     try:
+        from app.services.world_model import record_interaction
         llm = get_llm()
         personal_context = state.get("personal_context", "")
         emotional_prefix = get_emotional_prefix(state["user_input"])
@@ -76,11 +77,19 @@ async def chat_node(state: AgentState) -> AgentState:
         ])
         messages = prompt.format_messages()
         result = await llm.ainvoke(messages)
-        response = emotional_prefix + result.content
+        initial = emotional_prefix + result.content
+
+        # self-reflection — improve answer
+        from core.reflection import reflect_and_improve
+        improved = await reflect_and_improve(state["user_input"], initial)
+
+        # record to world model
+        await record_interaction(state["user_input"], "chat")
+
+        return {**state, "response": improved}
     except Exception as e:
         logger.error(f"Chat error: {e}")
-        response = "Sorry, something went wrong."
-    return {**state, "response": response}
+        return {**state, "response": "Sorry, something went wrong."}
 
 async def memory_node(state: AgentState) -> AgentState:
     try:

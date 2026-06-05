@@ -101,6 +101,17 @@ async def navix_session():
         except Exception as e:
             logger.warning(f"Briefing error: {e}")
 
+    # ── daily insight — once per day between 6 AM and 10 AM ──────────────────
+    if 6 <= hour <= 10:
+        try:
+            from app.services.world_model import generate_daily_insight
+            insight = await generate_daily_insight()
+            set_tray_state("talking")
+            speak(f"Here is your daily insight Naveen. {insight}")
+            add_chat_message("NAVIX", f"Here is your daily insight Naveen. {insight}")
+        except Exception as e:
+            logger.warning(f"Insight error: {e}")
+
     if 18 <= hour <= 21:
         set_tray_state("talking")
         speak("Good evening. How did your day go? What did you complete today?")
@@ -233,6 +244,42 @@ async def handle_wake_word(text: str):
             set_tray_state("talking")
             speak(random.choice(DONE_PHRASES))
             continue
+
+        # world model commands
+        if any(w in command_lower for w in ["my goal is", "add goal", "weekly goal"]):
+            from app.services.world_model import set_weekly_goal
+            goal_match = re.search(r"(?:my goal is|add goal|weekly goal)\s+(.+)", command_lower)
+            if goal_match:
+                result = await set_weekly_goal(goal_match.group(1))
+                set_tray_state("talking")
+                speak(f"Got it. {result}")
+                continue
+
+        if any(w in command_lower for w in ["i completed", "i finished", "mark done"]):
+            from app.services.world_model import complete_goal
+            goal_match = re.search(r"(?:i completed|i finished|mark done)\s+(.+)", command_lower)
+            if goal_match:
+                result = await complete_goal(goal_match.group(1))
+                set_tray_state("talking")
+                speak(f"Great work Naveen. {result}")
+                continue
+
+        if any(w in command_lower for w in ["give me an insight", "what should i focus", "daily insight", "advise me"]):
+            from app.services.world_model import generate_daily_insight
+            insight = await generate_daily_insight()
+            set_tray_state("talking")
+            speak(insight)
+            continue
+
+        if any(w in command_lower for w in ["i feel", "i am feeling", "my mood"]):
+            mood_match = re.search(r"(?:i feel|i am feeling|my mood is)\s+(.+)", command_lower)
+            if mood_match:
+                from app.services.world_model import record_mood
+                mood = mood_match.group(1).strip()
+                await record_mood(mood)
+                set_tray_state("talking")
+                speak(f"Got it Naveen. I have noted that you are feeling {mood}.")
+                continue
 
         # browser / app commands
         browser_result = await execute_browser_command(command)

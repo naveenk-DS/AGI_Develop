@@ -314,3 +314,39 @@ async def news_debug():
         results["error_type"] = type(e).__name__
         results["trace"] = traceback.format_exc()
     return results
+
+@router.get("/world/context")
+async def world_context():
+    from app.services.world_model import get_world_context
+    context = await get_world_context()
+    return {"context": context}
+
+@router.get("/world/insight")
+async def daily_insight():
+    from app.services.world_model import generate_daily_insight
+    insight = await generate_daily_insight()
+    return {"insight": insight}
+
+@router.post("/world/goal")
+async def add_goal(body: dict):
+    from app.services.world_model import set_weekly_goal
+    result = await set_weekly_goal(body.get("goal", ""))
+    return {"status": "ok", "result": result}
+
+@router.post("/world/goal/complete")
+async def complete_goal(body: dict):
+    from app.services.world_model import complete_goal
+    result = await complete_goal(body.get("goal", ""))
+    return {"status": "ok", "result": result}
+
+@router.post("/world/mood")
+async def record_mood(body: dict):
+    from app.services.world_model import record_mood
+    await record_mood(body.get("mood", "neutral"))
+    return {"status": "recorded"}
+
+@router.post("/world/learn")
+async def add_learning(body: dict):
+    from app.services.world_model import add_learning_topic
+    await add_learning_topic(body.get("topic", ""))
+    return {"status": "added"}
