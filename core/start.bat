@@ -1,16 +1,15 @@
 @echo off
-cd /d F:\naveen\AGI_Start\core
+echo Starting NAVIX services...
 
-if not exist "F:\naveen\AGI_Start\logs" mkdir "F:\naveen\AGI_Start\logs"
+echo Starting Qdrant...
+cd /d F:\naveen\qdrant_bin
+start "" /MIN qdrant.exe --config-path F:\naveen\AGI_Start\config\qdrant_config.yaml
 
-echo [%date% %time%] Starting AGI_Start services... >> F:\naveen\AGI_Start\logs\startup.log
+echo Waiting for Qdrant...
+timeout /t 5 /nobreak > nul
 
-:: Start Docker services
-docker compose --env-file ..\config\.env up -d >> F:\naveen\AGI_Start\logs\startup.log 2>&1
-
-:: Wait for services to be ready
-timeout /t 15 /nobreak > nul
-
-:: Start Python API
+echo Starting FastAPI...
 cd /d F:\naveen\AGI_Start
-uv run uvicorn app.main:app --host 127.0.0.1 --port 8001 >> F:\naveen\AGI_Start\logs\startup.log 2>&1
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8001
+
+pause

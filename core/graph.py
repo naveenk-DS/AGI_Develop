@@ -52,13 +52,40 @@ def router_node(state: AgentState) -> AgentState:
 
 async def rag_node(state: AgentState) -> AgentState:
     try:
+        from app.services.world_model import record_interaction
+
+        # standard vector RAG
         chain = get_rag_chain()
         result = chain.invoke({"query": state["user_input"]})
-        response = result["result"] if isinstance(result, dict) else str(result)
+        vector_answer = result["result"] if isinstance(result, dict) else str(result)
+
+        # graph RAG — find connected concepts
+        from app.services.knowledge_graph import graph_search
+        graph_context = await graph_search(state["user_input"])
+
+        if graph_context:
+            # combine both sources
+            llm = get_llm()
+            from langchain_core.messages import HumanMessage, SystemMessage
+            messages = [
+                SystemMessage(content="You are NAVIX. Answer using both sources. Keep it under 3 sentences."),
+                HumanMessage(content=(
+                    f"Question: {state['user_input']}\n\n"
+                    f"Vector search answer: {vector_answer}\n\n"
+                    f"Knowledge graph context:\n{graph_context}\n\n"
+                    f"Give the best combined answer:"
+                ))
+            ]
+            combined = await llm.ainvoke(messages)
+            response = combined.content.strip()
+        else:
+            response = vector_answer
+
+        await record_interaction(state["user_input"], "rag")
+        return {**state, "response": response}
     except Exception as e:
         logger.error(f"RAG error: {e}")
-        response = "I could not find that in the documents."
-    return {**state, "response": response}
+        return {**state, "response": "I could not find that in the documents."}
 
 async def chat_node(state: AgentState) -> AgentState:
     try:

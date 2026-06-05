@@ -96,6 +96,11 @@ async def lifespan(app: FastAPI):
     scheduler.start()
     logger.info("Scheduler started")
 
+    # start continual learning
+    from app.services.continual_learning import watch_and_learn
+    asyncio.create_task(watch_and_learn())
+    logger.info("Continual learning started")
+
     asyncio.create_task(preload_models())
     logger.info("Model preload started")
 

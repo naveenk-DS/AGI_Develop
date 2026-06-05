@@ -5,15 +5,11 @@ from loguru import logger
 from datetime import datetime
 
 SERVICES = {
-    "ollama":  "http://127.0.0.1:11434/api/tags",
-    "qdrant":  "http://127.0.0.1:6333/healthz",
-    "n8n":     "http://127.0.0.1:5678/healthz"
+    "ollama": "http://127.0.0.1:11434/api/tags",
+    "qdrant": "http://127.0.0.1:6333/healthz",
 }
 
-DOCKER_SERVICES = {
-    "qdrant": "core-qdrant-1",
-    "n8n":    "core-n8n-1"
-}
+DOCKER_SERVICES = {}  # empty — no docker
 
 health_status = {
     "ollama": True,

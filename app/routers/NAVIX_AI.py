@@ -350,3 +350,29 @@ async def add_learning(body: dict):
     from app.services.world_model import add_learning_topic
     await add_learning_topic(body.get("topic", ""))
     return {"status": "added"}
+
+@router.get("/graph/stats")
+async def graph_stats():
+    from app.services.knowledge_graph import get_graph_stats
+    return get_graph_stats()
+
+@router.post("/graph/search")
+async def graph_search_endpoint(body: CommandRequest):
+    from app.services.knowledge_graph import graph_search
+    result = await graph_search(body.command)
+    return {"result": result or "No connected concepts found"}
+
+@router.post("/learn/file")
+async def learn_from_file(body: dict):
+    from app.services.continual_learning import process_new_document
+    result = await process_new_document(body.get("file_path", ""))
+    return result
+
+@router.get("/learn/log")
+async def learning_log():
+    from pathlib import Path
+    log = Path("F:/naveen/AGI_Start/logs/learning.log")
+    if not log.exists():
+        return {"log": "No learning log yet"}
+    lines = log.read_text(encoding="utf-8").strip().split("\n")
+    return {"log": lines[-20:], "total_entries": len(lines)}
