@@ -406,3 +406,52 @@ async def advanced_rag(body: dict):
     from core.advanced_rag import advanced_rag_query
     result = await advanced_rag_query(body.get("question", ""))
     return {"answer": result}
+
+
+@router.post("/crew/research")
+async def crew_research(body: CommandRequest):
+    try:
+        import asyncio
+        from core.crew_agents import get_research_crew
+        result = await asyncio.get_event_loop().run_in_executor(
+            None, get_research_crew, body.command
+        )
+        return {"result": result}
+    except Exception as e:
+        return {"error": str(e)}
+
+@router.post("/crew/advise")
+async def crew_advise(body: CommandRequest):
+    try:
+        import asyncio
+        from core.crew_agents import get_advisory_crew
+        result = await asyncio.get_event_loop().run_in_executor(
+            None, get_advisory_crew, body.command
+        )
+        return {"result": result}
+    except Exception as e:
+        return {"error": str(e)}
+
+@router.post("/crew/plan")
+async def crew_plan(body: CommandRequest):
+    try:
+        import asyncio
+        from core.crew_agents import get_planning_crew
+        result = await asyncio.get_event_loop().run_in_executor(
+            None, get_planning_crew, body.command
+        )
+        return {"result": result}
+    except Exception as e:
+        return {"error": str(e)}
+
+@router.post("/crew/code")
+async def crew_code(body: CommandRequest):
+    try:
+        import asyncio
+        from core.crew_agents import get_code_crew
+        result = await asyncio.get_event_loop().run_in_executor(
+            None, get_code_crew, body.command
+        )
+        return {"result": result}
+    except Exception as e:
+        return {"error": str(e)}

@@ -22,11 +22,14 @@ def router_node(state: AgentState) -> AgentState:
     emotion = detect_emotion(state["user_input"])
 
     # smart routing
+    # add to routing logic in router_node
     if any(w in user_input for w in [
-        "document", "file", "pdf", "what does", "according to",
-        "in the document", "search documents", "find in"
+        "research", "explain in detail", "write code",
+        "create function", "advise me", "should i",
+        "plan for", "how to achieve", "steps to",
+        "deep dive", "analyze", "investigate"
     ]):
-        tool = "rag"
+        tool = "crew"
     elif any(w in user_input for w in [
         "open", "search", "youtube", "google", "news",
         "wikipedia", "browser", "website", "play", "click"
@@ -162,7 +165,7 @@ async def pc_node(state: AgentState) -> AgentState:
     except Exception as e:
         return {**state, "response": f"PC error: {e}"}
 
-def route_to_tool(state: AgentState) -> Literal["rag", "chat", "browser", "pc", "memory"]:
+def route_to_tool(state: AgentState) -> Literal["rag", "chat", "browser", "pc", "memory", "crew"]:
     return state["tool"]
 
 def build_graph():
@@ -174,6 +177,7 @@ def build_graph():
     graph.add_node("browser", browser_node)
     graph.add_node("pc", pc_node)
     graph.add_node("memory", memory_node)
+    graph.add_node("crew", crew_node)
 
     graph.set_entry_point("router")
 
@@ -185,7 +189,8 @@ def build_graph():
             "chat":    "chat",
             "browser": "browser",
             "pc":      "pc",
-            "memory":  "memory"
+            "memory":  "memory",
+            "crew":    "crew"
         }
     )
 
@@ -194,6 +199,8 @@ def build_graph():
     graph.add_edge("browser", END)
     graph.add_edge("pc",      END)
     graph.add_edge("memory",  END)
+    graph.add_edge("crew", END)   # ← add this
+
 
     return graph.compile()
 
@@ -204,3 +211,41 @@ def get_graph():
     if _graph is None:
         _graph = build_graph()
     return _graph
+
+async def crew_node(state: AgentState) -> AgentState:
+    try:
+        from core.crew_agents import (
+            get_research_crew, get_advisory_crew,
+            get_planning_crew, get_code_crew
+        )
+        import asyncio
+
+        text = state["user_input"].lower()
+
+        if any(w in text for w in ["write code", "create function", "python script", "code for"]):
+            crew_type = "code"
+            result = await asyncio.get_event_loop().run_in_executor(
+                None, get_code_crew, state["user_input"]
+            )
+        elif any(w in text for w in ["advise", "should i", "what do you think", "help me decide"]):
+            crew_type = "advisory"
+            result = await asyncio.get_event_loop().run_in_executor(
+                None, get_advisory_crew, state["user_input"]
+            )
+        elif any(w in text for w in ["plan", "how to achieve", "steps to", "roadmap"]):
+            crew_type = "planning"
+            result = await asyncio.get_event_loop().run_in_executor(
+                None, get_planning_crew, state["user_input"]
+            )
+        else:
+            crew_type = "research"
+            result = await asyncio.get_event_loop().run_in_executor(
+                None, get_research_crew, state["user_input"]
+            )
+
+        logger.info(f"Crew type: {crew_type}")
+        return {**state, "response": result, "tool": f"crew_{crew_type}"}
+
+    except Exception as e:
+        logger.error(f"Crew node error: {e}")
+        return {**state, "response": "Sorry, the AI team could not complete that task."}
