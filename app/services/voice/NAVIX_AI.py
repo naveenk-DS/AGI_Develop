@@ -59,77 +59,51 @@ async def process_command(text: str) -> str:
 async def navix_session():
     from app.services.planner import save_daily_plan, get_todays_plan
     from app.services.reminder import start_reminder_loop
+    from app.services.voice.personality import greeting
+    from core.emotion import detect_emotion
 
-    # ── tray: sleeping while greeting plays ──────────────────────────────────
     set_tray_state("sleeping")
-
-    greeting = get_greeting()
     hour = datetime.now().hour
     existing_plan = await get_todays_plan()
 
-    if existing_plan:
-        # ── tray: talking while NAVIX speaks ─────────────────────────────────
-        set_tray_state("talking")
-        speak(f"{greeting}. Welcome back. Your plan today is: {existing_plan}")
-    else:
-        set_tray_state("talking")
-        speak(f"{greeting}. What is your plan for today?")
-        add_chat_message("NAVIX", f"{greeting}. What is your plan for today?")
-        # ── tray: active while recording your answer ──────────────────────────
-        set_tray_state("listening")
-        await asyncio.sleep(0.5)
-        plan = listen_once()           # VAD — stops when you stop speaking
-        if plan and plan.strip():
-            add_chat_message("You", plan)
-            await save_daily_plan(plan)
-            set_tray_state("talking")
-            speak("Got it. I have saved your plan. I will help you stay on track.")
-            add_chat_message("NAVIX", "Got it. I have saved your plan. I will help you stay on track.")
-        else:
-            set_tray_state("talking")
-            speak(f"{greeting}. No plan recorded. Say Naveen anytime to start.")
-            add_chat_message("NAVIX", f"{greeting}. No plan recorded. Say Naveen anytime to start.")
+    # friendly morning greeting
+    greet = get_greeting()
+    set_tray_state("talking")
 
-    # ── auto morning briefing between 6 AM and 9 AM ──────────────────────────
+    if existing_plan:
+        speak(f"{greet} Welcome back Naveen! Your plan today is {existing_plan}. Let's do this!")
+    else:
+        speak(f"{greet} What are we doing today Naveen?")
+        set_tray_state("active")
+        await asyncio.sleep(0.5)
+        plan = listen_once(duration=8)
+        if plan and plan.strip():
+            await save_daily_plan(plan)
+            speak(f"Got it! {plan}. Sounds good, I've saved that. Let's get to it!")
+        else:
+            speak("No worries! Say Naveen anytime you need me.")
+
+    # morning briefing
     if 6 <= hour <= 9:
-        from app.services.news_briefing import build_morning_briefing
         try:
+            from app.services.news_briefing import build_morning_briefing
             briefing = await build_morning_briefing()
             set_tray_state("talking")
             speak(briefing)
-            add_chat_message("NAVIX", briefing)
         except Exception as e:
             logger.warning(f"Briefing error: {e}")
 
-    # ── daily insight — once per day between 6 AM and 10 AM ──────────────────
+    # daily insight
     if 6 <= hour <= 10:
         try:
             from app.services.world_model import generate_daily_insight
             insight = await generate_daily_insight()
             set_tray_state("talking")
-            speak(f"Here is your daily insight Naveen. {insight}")
-            add_chat_message("NAVIX", f"Here is your daily insight Naveen. {insight}")
+            speak(f"Quick insight for today Naveen. {insight}")
         except Exception as e:
             logger.warning(f"Insight error: {e}")
 
-    if 18 <= hour <= 21:
-        set_tray_state("talking")
-        speak("Good evening. How did your day go? What did you complete today?")
-        add_chat_message("NAVIX", "Good evening. How did your day go? What did you complete today?")
-        set_tray_state("listening")
-        await asyncio.sleep(0.5)
-        completed = listen_once()      # VAD
-        if completed and completed.strip():
-            add_chat_message("You", completed)
-            from app.services.planner import save_completed
-            await save_completed(completed)
-            set_tray_state("talking")
-            speak("Great. I have saved your progress for today.")
-            add_chat_message("NAVIX", "Great. I have saved your progress for today.")
-
     asyncio.create_task(start_reminder_loop())
-
-    # ── tray: back to sleeping — waiting for wake word ────────────────────────
     set_tray_state("sleeping")
 
 
@@ -157,92 +131,91 @@ def start_navix():
 
 async def handle_wake_word(text: str):
     from app.services.voice.pin_auth import authenticate, is_authenticated
+    from app.services.voice.personality import (
+        thinking_sound, greeting, follow_up, done,
+        confused, resuming, get_action_response, wrap_as_friend
+    )
     from app.services.command_parser import execute_browser_command
     from app.services.pc_command_parser import execute_pc_command
+    from core.emotion import detect_emotion
+    from navix_tray import set_tray_state
 
     lang_config = SUPPORTED_LANGUAGES[USER_PROFILE["preferred_language"]]
 
-    # ── WAKE WORD FIRED — tray glows purple ──────────────────────────────────
+    # wake word — PIN check
     set_tray_state("listening")
-
     if not is_authenticated():
-        set_tray_state("talking")
         speak("Please enter your PIN to activate NAVIX")
-        set_tray_state("listening")               # ← waiting for PIN input
+        set_tray_state("listening")
         success = authenticate()
         if not success:
-            set_tray_state("talking")
             speak("Authentication failed. NAVIX locked.")
-            set_tray_state("sleeping")            # ← back to sleep on fail
+            set_tray_state("sleeping")
             return
-    
-    # ── PIN PASSED — tray goes green ─────────────────────────────────────────
-    set_tray_state("active")
-    set_tray_state("talking")
-    speak(lang_config["wake_response"])
 
-    # ── CONVERSATION LOOP ─────────────────────────────────────────────────────
+    # activated
+    set_tray_state("active")
+    speak(greeting())
+
+    last_topic = ""
+    last_response = ""
+
     while True:
-        set_tray_state("listening")               # purple: listening
+        set_tray_state("active")
         await asyncio.sleep(0.2)
-        command = listen_once()                   # VAD — no fixed duration
+        command = listen_once(duration=6)
 
         if not command or not command.strip():
-            set_tray_state("talking")
-            phrase = random.choice(LISTENING_PHRASES)
-            speak(phrase)
-            add_chat_message("NAVIX", phrase)
+            speak(confused())
             continue
 
-        add_chat_message("You", command)
-
         command_lower = command.lower().strip()
-        logger.info(f"Command received: {command}")
+        logger.info(f"Command: {command}")
 
         # stop
         if any(w in command_lower for w in [
-            "stop","bye","goodbye","that's all",
-            "exit","close navix","ok bye","okay bye"
+            "stop", "bye", "goodbye", "exit", "ok bye", "okay bye", "that's all"
         ]):
             set_tray_state("talking")
-            speak("Okay Naveen. I am always here when you need me. Goodbye.")
-            set_tray_state("sleeping")            # ← goodbye → sleep
+            speak("Okay Naveen! Talk later. Take care!")
+            set_tray_state("sleeping")
             break
 
         # lock
-        if any(w in command_lower for w in ["lock","lock navix"]):
+        if any(w in command_lower for w in ["lock", "lock navix"]):
             from app.services.voice.pin_auth import lock
             lock()
             set_tray_state("talking")
-            speak("NAVIX locked. Say Naveen to unlock anytime.")
-            set_tray_state("sleeping")            # ← locked → sleep
+            speak("Locked! Say Naveen to unlock anytime.")
+            set_tray_state("sleeping")
             break
 
+        # resume last topic
+        if any(w in command_lower for w in ["continue", "go on", "carry on", "you were saying"]):
+            if last_response:
+                set_tray_state("talking")
+                speak(resuming())
+                speak(last_response)
+                speak(follow_up())
+                continue
+
         # reminder
+        import re
         remind_match = re.search(
             r"remind me (?:to )?(.+?) at (\d+)(?::(\d+))?\s*(am|pm)?",
             command_lower
         )
         if remind_match:
             from app.services.reminder import add_reminder
-            message = remind_match.group(1)
-            hour    = int(remind_match.group(2))
-            minute  = int(remind_match.group(3) or 0)
-            ampm    = remind_match.group(4)
+            message  = remind_match.group(1)
+            hour     = int(remind_match.group(2))
+            minute   = int(remind_match.group(3) or 0)
+            ampm     = remind_match.group(4)
             if ampm == "pm" and hour < 12:
                 hour += 12
             await add_reminder(message, hour, minute)
-            reply = f"Done. I will remind you to {message} at {hour}:{minute:02d}. Anything else?"
             set_tray_state("talking")
-            speak(reply)
-            add_chat_message("NAVIX", reply)
-            continue
-
-        # PC control
-        pc_result = await execute_pc_command(command)
-        if pc_result:
-            set_tray_state("talking")
-            speak(random.choice(DONE_PHRASES))
+            speak(f"Done! Reminding you to {message} at {hour}:{minute:02d}.")
             continue
 
         # world model commands
@@ -252,23 +225,16 @@ async def handle_wake_word(text: str):
             if goal_match:
                 result = await set_weekly_goal(goal_match.group(1))
                 set_tray_state("talking")
-                speak(f"Got it. {result}")
+                speak(f"Got it! {result}")
                 continue
 
-        if any(w in command_lower for w in ["i completed", "i finished", "mark done"]):
-            from app.services.world_model import complete_goal
-            goal_match = re.search(r"(?:i completed|i finished|mark done)\s+(.+)", command_lower)
-            if goal_match:
-                result = await complete_goal(goal_match.group(1))
-                set_tray_state("talking")
-                speak(f"Great work Naveen. {result}")
-                continue
-
-        if any(w in command_lower for w in ["give me an insight", "what should i focus", "daily insight", "advise me"]):
+        if any(w in command_lower for w in ["give me an insight", "advise me", "daily insight"]):
             from app.services.world_model import generate_daily_insight
-            insight = await generate_daily_insight()
             set_tray_state("talking")
+            speak(thinking_sound())
+            insight = await generate_daily_insight()
             speak(insight)
+            speak(follow_up())
             continue
 
         if any(w in command_lower for w in ["i feel", "i am feeling", "my mood"]):
@@ -278,29 +244,78 @@ async def handle_wake_word(text: str):
                 mood = mood_match.group(1).strip()
                 await record_mood(mood)
                 set_tray_state("talking")
-                speak(f"Got it Naveen. I have noted that you are feeling {mood}.")
+                emotion = detect_emotion(mood)
+                if emotion == "sadness":
+                    speak(f"Aw Naveen... I hear you. You're feeling {mood}. I'm here if you need to talk.")
+                elif emotion == "joy":
+                    speak(f"That's great Naveen! Love to hear you're feeling {mood}!")
+                else:
+                    speak(f"Got it, noted that you're feeling {mood}.")
                 continue
 
-        # browser / app commands
+        # crew commands
+        if any(w in command_lower for w in [
+            "research", "deep dive", "investigate",
+            "advise me on", "should i", "help me decide",
+            "plan for", "create a plan", "roadmap"
+        ]):
+            import asyncio as _asyncio
+            set_tray_state("talking")
+            speak(f"{thinking_sound()} Let me get my team on that. Give me a moment.")
+            set_tray_state("active")
+
+            if any(w in command_lower for w in ["advise", "should i", "decide"]):
+                from core.crew_agents import get_advisory_crew as crew_fn
+            elif any(w in command_lower for w in ["plan", "roadmap", "steps"]):
+                from core.crew_agents import get_planning_crew as crew_fn
+            else:
+                from core.crew_agents import get_research_crew as crew_fn
+
+            try:
+                result = await _asyncio.get_event_loop().run_in_executor(
+                    None, crew_fn, command
+                )
+                emotion = detect_emotion(result)
+                friendly = wrap_as_friend(result, emotion)
+                set_tray_state("talking")
+                speak(friendly)
+                last_response = friendly
+                speak(follow_up())
+            except Exception as e:
+                logger.error(f"Crew error: {e}")
+                speak("Hmm my team ran into a problem. Let me handle it myself.")
+                response = await process_command(command)
+                speak(wrap_as_friend(response))
+            continue
+
+        # PC control
+        pc_result = await execute_pc_command(command)
+        if pc_result:
+            set_tray_state("talking")
+            speak(done())
+            continue
+
+        # browser and app
         browser_result = await execute_browser_command(command)
         if browser_result:
             set_tray_state("talking")
-            speak(browser_result)
-            speak(random.choice(DONE_PHRASES))
+            speak(get_action_response(command))
+            speak(follow_up())
             continue
 
-        # AI agent
+        # AI agent — thinking sound first
         try:
-            set_tray_state("active")              # purple: thinking
+            emotion = detect_emotion(command)
+            set_tray_state("talking")
+            speak(thinking_sound())
+            set_tray_state("active")
             response = await process_command(command)
-            followup = random.choice(FOLLOWUP_PHRASES)
-            set_tray_state("talking")             # teal: speaking
-            speak(response)
-            add_chat_message("NAVIX", response)
-            speak(followup)
+            friendly = wrap_as_friend(response, emotion)
+            last_topic = command
+            last_response = friendly
+            set_tray_state("talking")
+            speak(friendly)
+            speak(follow_up())
         except Exception as e:
             logger.error(f"Agent error: {e}")
-            err_msg = "Sorry I could not do that. What else can I help with?"
-            set_tray_state("talking")
-            speak(err_msg)
-            add_chat_message("NAVIX", err_msg)
+            speak("Hmm something went wrong. What else can I help with?")

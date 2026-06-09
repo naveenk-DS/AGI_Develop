@@ -1,11 +1,17 @@
-from crewai import Agent, Task, Crew, Process
-from core.llm import get_llm
+from crewai import Agent, Task, Crew, Process, LLM
 from loguru import logger
+
+
+def get_crew_llm():
+    return LLM(
+        model="ollama/llama3.1",
+        base_url="http://127.0.0.1:11434"
+    )
 
 
 def get_research_crew(topic: str) -> str:
     try:
-        llm = get_llm()
+        llm = get_crew_llm()
 
         researcher = Agent(
             role="Research Specialist",
@@ -86,7 +92,7 @@ def get_research_crew(topic: str) -> str:
 
 def get_advisory_crew(situation: str) -> str:
     try:
-        llm = get_llm()
+        llm = get_crew_llm()
 
         advisor = Agent(
             role="Personal Advisor",
@@ -166,7 +172,7 @@ def get_advisory_crew(situation: str) -> str:
 
 def get_code_crew(request: str) -> str:
     try:
-        llm = get_llm()
+        llm = get_crew_llm()
 
         architect = Agent(
             role="Software Architect",
@@ -242,7 +248,7 @@ def get_code_crew(request: str) -> str:
 
 def get_planning_crew(goal: str) -> str:
     try:
-        llm = get_llm()
+        llm = get_crew_llm()
 
         planner = Agent(
             role="Project Planner",
