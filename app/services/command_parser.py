@@ -234,6 +234,12 @@ def parse_browser_command(text: str) -> dict:
     if "close browser" in text_lower or "close chrome" in text_lower:
         return {"action": "close"}
 
+    # Weather
+    if any(w in text_lower for w in ["weather", "temperature", "forecast", "rain", "climate"]):
+        city_match = re.search(r"(?:weather|temperature|forecast|rain|climate)\s+(?:in|of|for)?\s*(.+)?", text_lower)
+        city = city_match.group(1).strip() if city_match and city_match.group(1) else "Chennai"
+        return {"action": "weather", "city": city}
+
     return {"action": "none"}
 
 
@@ -331,5 +337,11 @@ async def execute_browser_command(text: str) -> str:
         from app.services.news_briefing import fetch_ai_news
         news = await fetch_ai_news()
         return "Here is the latest AI news. " + ". ".join(news) if news else "No AI news found."
+
+    elif cmd["action"] == "weather":
+        city = cmd.get("city", "Chennai")
+        import webbrowser
+        webbrowser.open(f"https://www.google.com/search?q=weather+{city.replace(' ', '+')}")
+        return f"Opening weather for {city}"
 
     return None

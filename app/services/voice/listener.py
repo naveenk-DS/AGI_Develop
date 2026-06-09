@@ -5,120 +5,103 @@ import soundfile as sf
 from loguru import logger
 from app.services.voice.language_config import USER_PROFILE
 
-DEVICE_ID   = 1
+DEVICE_ID = 6
 SAMPLE_RATE = 16000
+CHANNELS = 1  # device 9 needs 2 channels
 
 _model = None
-
 
 def get_model():
     global _model
     if _model is None:
+        logger.info("Loading Faster-Whisper...")
         import torch
-        device  = "cuda" if torch.cuda.is_available() else "cpu"
-        compute = "float16" if device == "cuda" else "int8"
-        logger.info(f"Loading Faster-Whisper on {device}...")
         from faster_whisper import WhisperModel
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        compute = "float16" if device == "cuda" else "int8"
         _model = WhisperModel("medium", device=device, compute_type=compute)
         logger.info(f"Faster-Whisper loaded on {device}")
     return _model
 
-
-# ── VAD recording ─────────────────────────────────────────────────────────────
-
 def record_until_silence(
-    max_duration: int   = 30,
-    silence_sec: float  = 1.5,
-    threshold: float    = 0.008,
+    min_duration: int = 2,
+    max_duration: int = 30,
+    silence_threshold: float = 0.005,
+    silence_duration: float = 1.5
 ) -> np.ndarray:
-    """
-    Real-time VAD recording.
-    Starts immediately, stops when you've been quiet for silence_sec,
-    hard cap at max_duration seconds. Works like ChatGPT voice.
-    """
-    chunk_size    = int(0.25 * SAMPLE_RATE)          # 250 ms chunks
-    max_chunks    = int(max_duration / 0.25)
-    need_silence  = int(silence_sec / 0.25)          # chunks of silence to stop
+    logger.info("Listening — speak now...")
+    
+    chunk_size = int(0.3 * SAMPLE_RATE)
+    all_audio = []
+    silent_chunks = 0
+    speaking_started = False
+    total_chunks = 0
+    max_chunks = int(max_duration / 0.3)
+    silence_chunks_needed = int(silence_duration / 0.3)
+    min_chunks = int(min_duration / 0.3)
 
-    recorded: list[np.ndarray] = []
-    silence_count   = 0
-    started_speaking = False
+    with sd.InputStream(
+        samplerate=SAMPLE_RATE,
+        channels=CHANNELS,
+        dtype="float32",
+        device=DEVICE_ID
+    ) as stream:
+        while total_chunks < max_chunks:
+            chunk, _ = stream.read(chunk_size)
+            # convert stereo to mono
+            if CHANNELS > 1:
+                chunk = chunk.mean(axis=1)
+            
+            all_audio.append(chunk)
+            total_chunks += 1
 
-    logger.info("VAD listening — speak now...")
-    try:
-        with sd.InputStream(
-            samplerate  = SAMPLE_RATE,
-            channels    = 1,
-            dtype       = "float32",
-            device      = DEVICE_ID,
-            blocksize   = chunk_size,
-        ) as stream:
-            for _ in range(max_chunks):
-                chunk, _ = stream.read(chunk_size)
-                audio    = chunk.flatten()
-                energy   = float(np.sqrt(np.mean(audio ** 2)))
-                recorded.append(audio.copy())
+            energy = float(np.sqrt(np.mean(chunk**2)))
 
-                if energy > threshold:
-                    started_speaking = True
-                    silence_count    = 0
-                elif started_speaking:
-                    silence_count += 1
-                    if silence_count >= need_silence:
-                        logger.info("Silence detected — stopping VAD")
-                        break
+            if energy > silence_threshold:
+                speaking_started = True
+                silent_chunks = 0
+            elif speaking_started:
+                silent_chunks += 1
+                if silent_chunks >= silence_chunks_needed and total_chunks >= min_chunks:
+                    logger.info(f"Silence detected — stopping after {total_chunks * 0.3:.1f}s")
+                    break
 
-    except Exception as e:
-        logger.error(f"VAD recording error: {e}")
-
-    if not recorded:
-        return np.zeros(SAMPLE_RATE, dtype="float32")
-
-    audio = np.concatenate(recorded)
-    logger.info(f"VAD captured {len(audio) / SAMPLE_RATE:.1f}s")
+    audio = np.concatenate(all_audio)
+    # normalize
+    max_val = np.max(np.abs(audio))
+    if max_val > 0.001:
+        audio = audio / max_val * 0.9
     return audio
 
+def record_audio(duration: int = 5) -> np.ndarray:
+    # keep for compatibility
+    return record_until_silence(min_duration=1, max_duration=duration)
 
 def transcribe_audio(audio: np.ndarray, language: str = None) -> str:
     model = get_model()
-    lang  = language or USER_PROFILE.get("preferred_language", "english")
+    lang = language or USER_PROFILE.get("preferred_language", "english")
     whisper_lang = "ta" if lang == "tamil" else "en"
 
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
         sf.write(f.name, audio, SAMPLE_RATE)
         tmp_path = f.name
 
-    segments, _ = model.transcribe(
+    segments, info = model.transcribe(
         tmp_path,
-        language       = whisper_lang,
-        beam_size      = 5,
-        vad_filter     = True,
-        vad_parameters = dict(min_silence_duration_ms=500),
+        language=whisper_lang,
+        beam_size=5,
+        vad_filter=True,
+        vad_parameters=dict(min_silence_duration_ms=300)
     )
 
     text = " ".join([s.text for s in segments]).strip()
-    logger.info(f"Transcribed ({lang}): {text}")
+    logger.info(f"Transcribed: {text}")
     return text
 
-
-def listen_once(duration: int = None, language: str = None) -> str:
-    """
-    Listen and transcribe.
-    No duration  → VAD mode (stops when you stop speaking). ← DEFAULT
-    With duration → fixed-length recording (legacy fallback).
-    """
-    if duration is not None:
-        logger.info(f"Fixed recording {duration}s...")
-        audio = sd.rec(
-            int(duration * SAMPLE_RATE),
-            samplerate = SAMPLE_RATE,
-            channels   = 1,
-            dtype      = "float32",
-            device     = DEVICE_ID,
-        )
-        sd.wait()
-        audio = audio.flatten()
-    else:
-        audio = record_until_silence()
-
+def listen_once(duration: int = 30, language: str = None) -> str:
+    audio = record_until_silence(
+        min_duration=1,
+        max_duration=duration,
+        silence_duration=1.2
+    )
     return transcribe_audio(audio, language=language)

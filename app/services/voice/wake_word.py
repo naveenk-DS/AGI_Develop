@@ -1,4 +1,5 @@
-from app.services.voice.listener import DEVICE_ID
+from litellm.litellm_core_utils import streaming_chunk_builder_utils
+from app.services.voice.listener import DEVICE_ID, CHANNELS
 import threading
 import sounddevice as sd
 import numpy as np
@@ -67,13 +68,17 @@ def start_wake_word_listener():
     _stop_event.clear()
     logger.info("Wake word listener started — say 'Naveen' to activate")
 
+    DEVICE_ID = 6
+    SAMPLE_RATE = 16000
+    CHANNELS = 1
+    
     def listen_loop():
         while not _stop_event.is_set():
             try:
                 chunk = sd.rec(
                     int(CHUNK_DURATION * SAMPLE_RATE),
                     samplerate=SAMPLE_RATE,
-                    channels=1,
+                    channels=1, 
                     dtype="float32",
                     device=DEVICE_ID
                 )
@@ -90,28 +95,26 @@ def start_wake_word_listener():
 
                 logger.debug(f"Heard: {text}")
 
-                # check if NAVIX is speaking and user wants to interrupt
                 from app.services.voice.speaker import is_speaking, interrupt_speech
                 if is_speaking() and _check_interrupt(text):
-                    logger.info(f"Interrupt detected: {text}")
                     interrupt_speech()
-                    # signal interrupt to active conversation
                     for cb in _interrupt_callbacks:
                         cb(text)
                     continue
 
-                # normal wake word check
                 if _check_wake_word(text):
-                    logger.info(f"Wake word detected: {text}")
+                    logger.info(f"Wake word: {text}")
                     for cb in _wake_callbacks:
                         cb(text)
 
             except Exception as e:
                 logger.error(f"Wake word error: {e}")
+                import time
                 time.sleep(1)
-    thread = threading.Thread(target=listen_loop, daemon=True)
-    thread.start()
-    return thread
+
+        thread = threading.Thread(target=listen_loop, daemon=True)
+        thread.start()
+        return thread
 
 def stop_wake_word_listener():
     global _listening

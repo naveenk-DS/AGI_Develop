@@ -1,27 +1,26 @@
 from loguru import logger
-from functools import lru_cache
+import httpx
+import asyncio
 
 EMOTION_RESPONSES = {
-    "joy":      "I am glad to hear that! ",
-    "sadness":  "I am sorry to hear that Naveen. ",
-    "anger":    "I understand your frustration. ",
-    "fear":     "Don't worry Naveen, I am here. ",
-    "surprise": "Oh interesting! ",
+    "joy":      "That's great! ",
+    "sadness":  "I hear you Naveen. ",
+    "anger":    "I get it. ",
+    "fear":     "Don't worry. ",
+    "surprise": "Oh wow! ",
     "neutral":  ""
 }
 
-async def detect_emotion_ollama(text: str) -> str:
+async def detect_emotion_async(text: str) -> str:
     try:
-        import httpx
-        async with httpx.AsyncClient(timeout=10) as client:
+        async with httpx.AsyncClient(timeout=8) as client:
             r = await client.post(
                 "http://127.0.0.1:11434/api/generate",
                 json={
                     "model": "llama3.1",
                     "prompt": (
-                        f"Classify the emotion in this text into exactly one word: "
-                        f"joy, sadness, anger, fear, surprise, or neutral.\n"
-                        f"Text: {text[:200]}\n"
+                        f"Detect emotion in one word only from: joy, sadness, anger, fear, surprise, neutral.\n"
+                        f"Text: {text[:150]}\n"
                         f"Emotion:"
                     ),
                     "stream": False
@@ -29,16 +28,14 @@ async def detect_emotion_ollama(text: str) -> str:
             )
             if r.status_code == 200:
                 emotion = r.json().get("response", "").strip().lower()
-                # clean up
                 for e in ["joy", "sadness", "anger", "fear", "surprise", "neutral"]:
                     if e in emotion:
                         return e
     except Exception as e:
-        logger.warning(f"Ollama emotion failed: {e}")
+        logger.warning(f"Emotion detect failed: {e}")
     return "neutral"
 
 def detect_emotion(text: str) -> str:
-    # sync keyword fallback
     text_lower = text.lower()
     if any(w in text_lower for w in ["happy", "great", "amazing", "love", "excellent"]):
         return "joy"
