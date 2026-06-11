@@ -91,30 +91,22 @@ async def rag_node(state: AgentState) -> AgentState:
 async def chat_node(state: AgentState) -> AgentState:
     try:
         from app.services.world_model import record_interaction
-        llm = get_llm()
+        from core.llm import get_personality_llm
+        
+        llm = get_personality_llm()
         personal_context = state.get("personal_context", "")
         emotional_prefix = get_emotional_prefix(state["user_input"])
 
-        prompt = ChatPromptTemplate.from_messages([
-            SystemMessage(content=(
-                f"You are NAVIX, a friendly personal AI assistant.\n"
-                f"{personal_context}\n"
-                f"Keep responses under 3 sentences. Be warm and natural."
-            )),
+        from langchain_core.messages import HumanMessage, SystemMessage
+        messages = [
+            SystemMessage(content=personal_context) if personal_context else SystemMessage(content="You are NAVIX."),
             HumanMessage(content=state["user_input"])
-        ])
-        messages = prompt.format_messages()
+        ]
         result = await llm.ainvoke(messages)
-        initial = emotional_prefix + result.content
+        response = emotional_prefix + result.content.strip()
 
-        # self-reflection — improve answer
-        from core.reflection import reflect_and_improve
-        improved = await reflect_and_improve(state["user_input"], initial)
-
-        # record to world model
         await record_interaction(state["user_input"], "chat")
-
-        return {**state, "response": improved}
+        return {**state, "response": response}
     except Exception as e:
         logger.error(f"Chat error: {e}")
         return {**state, "response": "Sorry, something went wrong."}

@@ -38,3 +38,12 @@ def get_embeddings():
         model="nomic-embed-text",
         base_url="http://127.0.0.1:11434"
     )
+
+@lru_cache(maxsize=1)
+def get_personality_llm():
+    return ChatOllama(
+        model="navix-personality",
+        temperature=0.85,
+        base_url="http://127.0.0.1:11434",
+        num_gpu=1
+    )

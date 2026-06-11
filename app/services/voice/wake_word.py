@@ -26,7 +26,7 @@ WAKE_WORDS = [
     "activate", "computer", "start",
     # add whatever Whisper hears when you say hey navix
 ]
-ENERGY_THRESHOLD = 0.02   # lowered: catches quieter speech
+ENERGY_THRESHOLD = 0.0005   # lowered: catches quieter speech
 SAMPLE_RATE = 16000
 CHUNK_DURATION = 1.5  # seconds per chunk — long enough for "Hey Navix"
 
@@ -36,14 +36,10 @@ def add_wake_callback(callback):
 def _check_wake_word(text: str) -> bool:
     text_lower = text.lower().strip()
     WAKE_WORDS = [
-        # Original
-        "navix", "hey navix", "navi", "hey navi",
-        # Your name as wake word
         "naveen", "hey naveen", "hi naveen",
-        # Common misrecognitions of Naveen
-        "navin", "naven", "navine", "kevin",
-        # Tamil
-        "நவீன்", "ஜார்விஸ்"
+        "navin", "naven", "navine",
+        "navix", "hey navix",
+        "activate", "wake up",
     ]
     for word in WAKE_WORDS:
         if word in text_lower:
@@ -90,10 +86,10 @@ def start_wake_word_listener():
                     continue
 
                 text = transcribe_audio(audio)
+                if text and text.strip():
+                    logger.info(f"Heard: {text}")
                 if not text or len(text.strip()) < 2:
                     continue
-
-                logger.debug(f"Heard: {text}")
 
                 from app.services.voice.speaker import is_speaking, interrupt_speech
                 if is_speaking() and _check_interrupt(text):
@@ -112,9 +108,9 @@ def start_wake_word_listener():
                 import time
                 time.sleep(1)
 
-        thread = threading.Thread(target=listen_loop, daemon=True)
-        thread.start()
-        return thread
+    thread = threading.Thread(target=listen_loop, daemon=True)
+    thread.start()
+    return thread
 
 def stop_wake_word_listener():
     global _listening
