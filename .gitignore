@@ -10,3 +10,9 @@ __pycache__/
 ffmpeg/
 *.exe
 watch/processed/
+training/navix_model/
+training/navix_model_gguf/
+training/navix_gguf/
+training/navix_model.gguf
+training/checkpoint-*/
+unsloth_compiled_cache/
