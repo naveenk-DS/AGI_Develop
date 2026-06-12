@@ -70,15 +70,25 @@ def start_wake_word_listener():
     
     def listen_loop():
         while not _stop_event.is_set():
+            # ── Yield the mic while a command session is active ──────────────
+            if _handling.is_set():
+                time.sleep(0.2)
+                continue
+
             try:
                 chunk = sd.rec(
                     int(CHUNK_DURATION * SAMPLE_RATE),
                     samplerate=SAMPLE_RATE,
-                    channels=1, 
+                    channels=1,
                     dtype="float32",
                     device=DEVICE_ID
                 )
                 sd.wait()
+
+                # If _handling was set while we were recording, discard this chunk
+                if _handling.is_set():
+                    continue
+
                 audio = chunk.flatten()
 
                 energy = float(np.sqrt(np.mean(audio**2)))
@@ -105,12 +115,21 @@ def start_wake_word_listener():
 
             except Exception as e:
                 logger.error(f"Wake word error: {e}")
-                import time
                 time.sleep(1)
 
     thread = threading.Thread(target=listen_loop, daemon=True)
     thread.start()
     return thread
+
+def set_handling():
+    """Call when entering a voice command session — pauses the wake word listener."""
+    _handling.set()
+    logger.debug("[wake_word] mic handed to command session")
+
+def clear_handling():
+    """Call when exiting a voice command session — resumes the wake word listener."""
+    _handling.clear()
+    logger.debug("[wake_word] mic returned to wake word listener")
 
 def stop_wake_word_listener():
     global _listening

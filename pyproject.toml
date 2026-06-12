@@ -58,6 +58,7 @@ dependencies = [
     "watchdog>=6.0.0",
     "wikipedia-api>=0.15.0",
     "rank-bm25",
+    "pyarrow>=18.0.0,<20.0.0",
 ]
 
 [dependency-groups]
