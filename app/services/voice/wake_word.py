@@ -28,7 +28,8 @@ WAKE_WORDS = [
 ]
 ENERGY_THRESHOLD = 0.0005   # lowered: catches quieter speech
 SAMPLE_RATE = 16000
-CHUNK_DURATION = 1.5  # seconds per chunk — long enough for "Hey Navix"
+CHUNK_DURATION = 0.3  # 300ms chunks for hyper-fast mic yielding
+WINDOW_DURATION = 1.5 # 1.5s sliding window for transcription
 
 def add_wake_callback(callback):
     _wake_callbacks.append(callback)
@@ -69,10 +70,14 @@ def start_wake_word_listener():
     CHANNELS = 1
     
     def listen_loop():
+        audio_buffer = np.zeros(0, dtype=np.float32)
+        max_buffer_len = int(WINDOW_DURATION * SAMPLE_RATE)
+        
         while not _stop_event.is_set():
             # ── Yield the mic while a command session is active ──────────────
             if _handling.is_set():
-                time.sleep(0.2)
+                audio_buffer = np.zeros(0, dtype=np.float32)
+                time.sleep(0.1)
                 continue
 
             try:
@@ -87,15 +92,25 @@ def start_wake_word_listener():
 
                 # If _handling was set while we were recording, discard this chunk
                 if _handling.is_set():
+                    audio_buffer = np.zeros(0, dtype=np.float32)
                     continue
 
                 audio = chunk.flatten()
+                
+                # Protect against mic hardware glitching with giant garbage numbers
+                audio = np.nan_to_num(audio, posinf=1.0, neginf=-1.0)
+                audio = np.clip(audio, -1.0, 1.0)
 
-                energy = float(np.sqrt(np.mean(audio**2)))
-                if energy < 0.001:
+                # Append to sliding window
+                audio_buffer = np.concatenate((audio_buffer, audio))
+                if len(audio_buffer) > max_buffer_len:
+                    audio_buffer = audio_buffer[-max_buffer_len:]
+
+                energy = float(np.sqrt(np.mean(audio.astype(np.float64)**2)))
+                if energy < ENERGY_THRESHOLD:
                     continue
 
-                text = transcribe_audio(audio)
+                text = transcribe_audio(audio_buffer)
                 if text and text.strip():
                     logger.info(f"Heard: {text}")
                 if not text or len(text.strip()) < 2:

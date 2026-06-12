@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from sqlalchemy import select, delete
 from loguru import logger
 from app.db.database import AsyncSessionLocal
@@ -33,6 +33,24 @@ async def get_todays_plan(customer_id: str = "naveen") -> str:
         row = result.scalar_one_or_none()
         if row and row.event_data:
             if row.event_data.get("date") == today:
+                return row.event_data.get("plan", "")
+    return ""
+
+async def get_yesterdays_plan(customer_id: str = "naveen") -> str:
+    yesterday = str(date.today() - timedelta(days=1))
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(UsageLog)
+            .where(
+                UsageLog.customer_id == customer_id,
+                UsageLog.event_type == "daily_plan"
+            )
+            .order_by(UsageLog.created_at.desc())
+            .limit(1)
+        )
+        row = result.scalar_one_or_none()
+        if row and row.event_data:
+            if row.event_data.get("date") == yesterday:
                 return row.event_data.get("plan", "")
     return ""
 

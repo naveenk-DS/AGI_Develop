@@ -2,7 +2,7 @@
 personality.py — All NAVIX phrases are AI-generated via Ollama.
 No hardcoded sentences. Every response is freshly predicted.
 """
-import random
+
 import re
 import requests
 from loguru import logger
@@ -47,63 +47,92 @@ _PROMPTS = {
     ),
 }
 
-# ── Hardcoded emergency fallbacks (only used when Ollama is unreachable) ──────
-_FALLBACKS = {
-    "greeting":      ["Go ahead.", "I'm here.", "Yes?", "What's up?"],
-    "confused":      ["Say that again?", "Didn't catch that.", "One more time?"],
-    "follow_up":     ["What else?", "Anything else?", "I'm listening."],
-    "done":          ["Done.", "All set.", "There you go."],
-    "thinking":      ["Hmm...", "Let me check...", "One sec..."],
-    "resuming":      ["So as I was saying...", "Right, continuing..."],
-    "acknowledgement": ["Got it.", "Sure.", "Okay."],
+# ── Last-resort strings (single word only — used ONLY if model is fully offline) ──
+_LAST_RESORT = {
+    "greeting":        "Yes?",
+    "confused":        "Pardon?",
+    "follow_up":       "Anything else?",
+    "done":            "Done.",
+    "thinking":        "Hmm...",
+    "resuming":        "Continuing...",
+    "acknowledgement": "Okay.",
 }
+
+# ── Lightweight fallback prompts (shorter, faster — used when primary call fails) ─
+_FALLBACK_PROMPTS = {
+    "greeting":        "Say one very short greeting. Under 4 words.",
+    "confused":        "Ask to repeat in 3 words or less.",
+    "follow_up":       "Ask if anything else is needed. Under 5 words.",
+    "done":            "Confirm task done in 2 words.",
+    "thinking":        "Say a thinking filler. Under 4 words.",
+    "resuming":        "Say you're continuing. Under 4 words.",
+    "acknowledgement": "Acknowledge in 2 words or less.",
+}
+
+
+def _call_ollama(prompt: str, model: str, timeout: float = 6) -> str:
+    """Single Ollama call — returns cleaned text or empty string."""
+    resp = requests.post(
+        _OLLAMA_URL,
+        json={
+            "model": model,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": 0.9,
+                "top_p": 0.95,
+                "num_predict": 40,
+                "repeat_penalty": 1.4,
+                "stop": ["\n", "User:", "Naveen:"],
+            },
+        },
+        timeout=timeout,
+    )
+    if resp.status_code != 200:
+        return ""
+    text = resp.json().get("response", "").strip()
+    text = re.sub(r'\*+', '', text)
+    text = re.sub(r'#+\s*', '', text)
+    text = text.strip('"').strip("'").strip()
+    return text if 2 < len(text) < 120 else ""
 
 
 def _generate(slot: str) -> str:
     """
-    Call Ollama to generate a fresh phrase for the given personality slot.
-    Falls back gracefully if Ollama is unavailable.
+    Generate a fresh phrase for the given slot.
+    Tier 1 → navix-personality model with full prompt
+    Tier 2 → fallback model with lightweight prompt (also model-predicted)
+    Tier 3 → last-resort single hardcoded word (only if fully offline)
     """
-    prompt = _PROMPTS.get(slot, "Say something brief and friendly.")
+    full_prompt  = _PROMPTS.get(slot, "Say something brief and friendly.")
+    light_prompt = _FALLBACK_PROMPTS.get(slot, "Say something brief.")
 
+    # Tier 1 — primary model, full prompt
     for model in [_NAVIX_MODEL, _FALLBACK_MODEL]:
         try:
-            resp = requests.post(
-                _OLLAMA_URL,
-                json={
-                    "model": model,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "temperature": 0.9,
-                        "top_p": 0.95,
-                        "num_predict": 40,
-                        "repeat_penalty": 1.4,
-                        "stop": ["\n", "User:", "Naveen:"],
-                    },
-                },
-                timeout=6,
-            )
-            if resp.status_code == 200:
-                text = resp.json().get("response", "").strip()
-                # strip markdown artifacts
-                text = re.sub(r'\*+', '', text)
-                text = re.sub(r'#+\s*', '', text)
-                text = text.strip('"').strip("'").strip()
-                # sanity — must be non-empty and reasonable length
-                if 2 < len(text) < 120:
-                    logger.debug(f"[personality:{slot}] model={model} → {text!r}")
-                    return text
+            text = _call_ollama(full_prompt, model, timeout=6)
+            if text:
+                logger.debug(f"[personality:{slot}] tier1 model={model} → {text!r}")
+                return text
         except requests.exceptions.ConnectionError:
-            logger.warning(f"[personality] Ollama not reachable (slot={slot}), using fallback")
+            logger.warning(f"[personality] Ollama not reachable (slot={slot}), trying light prompt")
             break
         except Exception as e:
             logger.warning(f"[personality] Ollama error (slot={slot}): {e}")
             break
 
-    # fallback
-    choice = random.choice(_FALLBACKS.get(slot, ["Okay."]))
-    logger.debug(f"[personality:{slot}] fallback → {choice!r}")
+    # Tier 2 — fallback model with a lighter, faster prompt (still model-predicted)
+    try:
+        text = _call_ollama(light_prompt, _FALLBACK_MODEL, timeout=3)
+        if text:
+            logger.debug(f"[personality:{slot}] tier2 light → {text!r}")
+            return text
+    except Exception:
+        pass
+
+    # Tier 3 — fully offline last resort
+    choice = _LAST_RESORT.get(slot, "Okay.")
+    logger.debug(f"[personality:{slot}] tier3 last-resort → {choice!r}")
     return choice
 
 
@@ -171,7 +200,7 @@ def get_action_response(action: str) -> str:
         except Exception:
             break
 
-    return random.choice(["On it!", "Sure thing!", "Opening that now."])
+    return _generate("acknowledgement")
 
 
 def wrap_as_friend(response: str, emotion: str = "neutral") -> str:
