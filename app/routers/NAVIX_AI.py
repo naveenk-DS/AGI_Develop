@@ -455,3 +455,21 @@ async def crew_code(body: CommandRequest):
         return {"result": result}
     except Exception as e:
         return {"error": str(e)}
+
+
+@router.get("/voice/samples")
+async def voice_samples():
+    from pathlib import Path
+    folder = Path("F:/naveen/AGI_Start/data/voice_samples")
+    if not folder.exists():
+        return {"count": 0, "size_mb": 0}
+    
+    wav_files = list(folder.glob("*.wav"))
+    total_size = sum(f.stat().st_size for f in wav_files)
+    
+    return {
+        "count": len(wav_files),
+        "size_mb": round(total_size / 1024 / 1024, 1),
+        "folder": str(folder),
+        "status": "collecting — keep using NAVIX daily"
+    }
