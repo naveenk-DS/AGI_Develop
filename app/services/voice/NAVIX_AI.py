@@ -12,7 +12,7 @@ from app.services.voice.listener import listen_once
 from app.services.voice.wake_word import start_wake_word_listener, add_wake_callback
 import httpx
 
-OLLAMA_URL  = "http://localhost:11434/api/generate"
+OLLAMA_URL  = "http://127.0.0.1:11434/api/generate"
 NAVIX_MODEL = "navix-personality"
 
 SYSTEM_PROMPT = (
@@ -25,36 +25,46 @@ SYSTEM_PROMPT = (
 )
 
 
-async def ask_model(prompt: str, context: str = "") -> str:
+async def ask_model(prompt: str, context: str = "", fallback: str = "") -> str:
+    """
+    Send a prompt to Ollama. Retries once on timeout.
+    Returns `fallback` if the model fails or times out.
+    """
     full_prompt = f"{context}\n\n{prompt}".strip() if context else prompt
-    try:
-        async with httpx.AsyncClient(timeout=20) as client:
-            r = await client.post(
-                OLLAMA_URL,
-                json={
-                    "model": NAVIX_MODEL,
-                    "prompt": full_prompt,
-                    "system": SYSTEM_PROMPT,
-                    "stream": False,
-                    "options": {
-                        "temperature": 0.85,
-                        "top_p": 0.9,
-                        "num_predict": 120,
-                        "repeat_penalty": 1.3,
-                        "stop": ["\n\n", "User:", "Naveen:"],
+
+    for attempt in range(2):   # try twice
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:   # 60s — llama3.1 can be slow
+                r = await client.post(
+                    OLLAMA_URL,
+                    json={
+                        "model": NAVIX_MODEL,
+                        "prompt": full_prompt,
+                        "system": SYSTEM_PROMPT,
+                        "stream": False,
+                        "options": {
+                            "temperature": 0.85,
+                            "top_p": 0.9,
+                            "num_predict": 120,
+                            "repeat_penalty": 1.3,
+                            "stop": ["\n\n", "User:", "Naveen:"],
+                        },
                     },
-                },
-            )
-            if r.status_code == 200:
-                text = r.json().get("response", "").strip()
-                text = re.sub(r'\*+', '', text)
-                text = re.sub(r'#+\s*', '', text)
-                text = text.strip('"').strip("'").strip()
-                logger.debug(f"[model] → {text!r}")
-                return text
-    except Exception as e:
-        logger.error(f"Ollama error: {e}")
-    return ""
+                )
+                if r.status_code == 200:
+                    text = r.json().get("response", "").strip()
+                    text = re.sub(r'\*+', '', text)
+                    text = re.sub(r'#+\s*', '', text)
+                    text = text.strip('"').strip("'").strip()
+                    if text:
+                        logger.debug(f"[model] → {text!r}")
+                        return text
+        except Exception as e:
+            logger.error(f"Ollama error (attempt {attempt+1}): {e}")
+            if attempt == 0:
+                await asyncio.sleep(1)   # brief pause before retry
+
+    return fallback
 
 
 def get_period() -> str:
@@ -221,10 +231,11 @@ async def handle_wake_word(text: str):
 
     # ── Activation greeting ──────────────────────────────────────────────────
     activation = await ask_model(
-        "Naveen just activated you. Say one short natural response. Max 5 words."
+        "Naveen just activated you. Say one short natural response. Max 5 words.",
+        fallback="Yes Naveen?"
     )
     set_tray_state("talking")
-    speak(activation or "Yes Naveen?")
+    speak(activation)
 
     # ── Continuous conversation loop ─────────────────────────────────────────
     while True:
@@ -289,7 +300,8 @@ async def handle_wake_word(text: str):
         pc_result = await execute_pc_command(command)
         if pc_result:
             response = await ask_model(
-                f"You just did: {pc_result}. Confirm casually. 1 sentence."
+                f"You just did: {pc_result}. Confirm casually. 1 sentence.",
+                fallback="Done!"
             )
             set_tray_state("talking")
             speak(response)
@@ -300,7 +312,8 @@ async def handle_wake_word(text: str):
         browser_result = await execute_browser_command(command)
         if browser_result:
             response = await ask_model(
-                f"You just did: {browser_result}. Confirm casually. 1 sentence."
+                f"You just did: {browser_result}. Confirm casually. 1 sentence.",
+                fallback="Done!"
             )
             set_tray_state("talking")
             speak(response)
@@ -308,7 +321,50 @@ async def handle_wake_word(text: str):
 
         # ── Everything else — AI handles ──────────────────────────────────────
         set_tray_state("talking")
-        response = await ask_model(command)
-        if response:
-            speak(response)
-        set_tray_state("active")    
+        speak("Hmm, let me think...")   # instant feedback while model processes
+        response = await ask_model(
+            command,
+            fallback="I didn't quite get that, Naveen. Can you say it again?"
+        )
+        speak(response)
+        set_tray_state("active")
+
+
+# ── Graph-based command processing ───────────────────────────────────────────
+
+async def process_command(text: str) -> str:
+    """
+    Route a text command through the full NAVIX LangGraph pipeline.
+
+    1. Fetches personal memory context.
+    2. Builds the initial AgentState.
+    3. Invokes the graph asynchronously.
+    4. Returns the final spoken response string.
+    """
+    try:
+        from core.graph import get_graph
+        from app.services.personal_memory import get_context_for_ai
+
+        personal_context = await get_context_for_ai()
+        graph = get_graph()
+
+        state = {
+            "messages":         [],
+            "user_input":       text,
+            "understood":       "",
+            "plan":             [],
+            "current_step":     0,
+            "tool":             "chat",
+            "tool_result":      "",
+            "verified":         False,
+            "response":         "",
+            "emotion":          "neutral",
+            "personal_context": personal_context,
+        }
+
+        result = await graph.ainvoke(state)
+        return result["response"]
+
+    except Exception as e:
+        logger.error(f"Graph error: {e}")
+        return "Sorry something went wrong."

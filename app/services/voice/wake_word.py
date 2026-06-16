@@ -1,69 +1,51 @@
-from litellm.litellm_core_utils import streaming_chunk_builder_utils
-from app.services.voice.listener import DEVICE_ID, CHANNELS
+"""
+wake_word.py — NAVIX wake-word detection
+
+Uses soundcard (Windows WASAPI) for microphone access — same as listener.py —
+to avoid PortAudio WDM-KS errors on Windows.
+"""
 import threading
-import sounddevice as sd
 import numpy as np
 from loguru import logger
 import time
 
-# Simple energy-based wake word detection
-# No API key needed — detects loud sound then listens for "jarvis"
-from app.services.voice.listener import transcribe_audio
+from app.services.voice.listener import transcribe_audio, SAMPLE_RATE
 
 _listening = False
-_wake_callbacks = []
-_stop_event = threading.Event()
-_handling = threading.Event()  # set while a wake-word command is being handled
-
+_wake_callbacks      = []
 _interrupt_callbacks = []
+_stop_event          = threading.Event()
+_handling            = threading.Event()   # set while handling a command
 
-def add_interrupt_callback(callback):
-    _interrupt_callbacks.append(callback)
+CHUNK_DURATION = 1.5   # seconds — longer window gives Whisper more context
 
-WAKE_WORDS = [
-    "navix", "hey navix", "navi", "hey navi",
-    "navik", "nabix", "navicks", "navic",
-    "activate", "computer", "start", "hey","mofi"
-    # add whatever Whisper hears when you say hey navix
-]
-ENERGY_THRESHOLD = 0.0005   # lowered: catches quieter speech
-SAMPLE_RATE = 16000
-CHUNK_DURATION = 0.3  # 300ms chunks for hyper-fast mic yielding
-WINDOW_DURATION = 1.5 # 1.5s sliding window for transcription
 
 def add_wake_callback(callback):
     _wake_callbacks.append(callback)
 
+def add_interrupt_callback(callback):
+    _interrupt_callbacks.append(callback)
+
+
 def _check_wake_word(text: str) -> bool:
     text_lower = text.lower().strip()
-    WAKE_WORDS = [
-        # correct
+    wake_words = [
         "naveen", "hey naveen", "hi naveen",
-        # whisper mishears
         "navin", "naven", "navine", "nabean",
-        "kevin", "navine", "naveen",
-        "navi", "navy", "navey",
+        "kevin", "navi", "navy", "navey",
         "the bean", "nahveen", "navien",
-        "hey", "mofi"
-        # tamil accent variations
-        "நவீன்", "நவீன்",
+        "hey", "mofi",
+        "நவீன்",
     ]
-    for word in WAKE_WORDS:
-        if word in text_lower:
-            return True
-    return False
+    return any(w in text_lower for w in wake_words)
 
-def _calculate_energy(audio: np.ndarray) -> float:
-    return float(np.sqrt(np.mean(audio**2)))
 
-INTERRUPT_WORDS = [
-    "stop", "wait", "pause", "hold on",
-    "listen", "hey", "naveen", "quiet"
-]
+INTERRUPT_WORDS = ["stop", "wait", "pause", "hold on", "listen", "hey", "naveen", "quiet"]
 
 def _check_interrupt(text: str) -> bool:
     text_lower = text.lower().strip()
     return any(w in text_lower for w in INTERRUPT_WORDS)
+
 
 def start_wake_word_listener():
     global _listening
@@ -71,51 +53,51 @@ def start_wake_word_listener():
     _stop_event.clear()
     logger.info("Wake word listener started — say 'Naveen' to activate")
 
-    from app.services.voice.listener import DEVICE_ID, CHANNELS
-    
-
     def listen_loop():
+        import soundcard as sc
+        chunk_size = int(CHUNK_DURATION * SAMPLE_RATE)
+
         while not _stop_event.is_set():
             if _handling.is_set():
-                sd.stop()
                 time.sleep(0.2)
                 continue
+
             try:
-                channels = CHANNELS
-            
-                chunk = sd.rec(
-                    int(CHUNK_DURATION * SAMPLE_RATE),
-                    samplerate=SAMPLE_RATE,
-                    channels=channels,
-                    dtype="float32",
-                    device=DEVICE_ID
-                )
-                sd.wait()
-                audio = chunk.mean(axis=1) if channels > 1 else chunk.flatten()
-            
-                audio_clipped = np.clip(audio, -1.0, 1.0)
-                energy = float(np.sqrt(np.mean(audio_clipped**2)))
-                
-                if energy < 0.001:
+                # Get current best mic each loop (handles USB mic plug/unplug)
+                from app.services.voice.listener import _get_mic
+                mic = _get_mic()
+                if mic is None:
+                    logger.warning("No microphone available — retrying in 5s")
+                    time.sleep(5)
                     continue
 
-                text = transcribe_audio(audio)
-                if not text or len(text.strip()) < 2:
-                    continue
+                with mic.recorder(samplerate=SAMPLE_RATE, channels=1, blocksize=chunk_size) as rec:
+                    logger.debug("Wake-word mic open")
+                    while not _stop_event.is_set() and not _handling.is_set():
+                        chunk = rec.record(numframes=chunk_size)   # (N, 1)
+                        audio = chunk[:, 0].astype(np.float32)
 
-                logger.debug(f"Heard: {text}")
+                        energy = float(np.sqrt(np.mean(audio ** 2)))
+                        if energy < 0.001:
+                            continue
 
-                from app.services.voice.speaker import is_speaking, interrupt_speech
-                if is_speaking() and _check_interrupt(text):
-                    interrupt_speech()
-                    for cb in _interrupt_callbacks:
-                        cb(text)
-                    continue
+                        text = transcribe_audio(audio)
+                        if not text or len(text.strip()) < 2:
+                            continue
 
-                if _check_wake_word(text):
-                    logger.info(f"Wake word: {text}")
-                    for cb in _wake_callbacks:
-                        cb(text)
+                        logger.debug(f"Heard: {text}")
+
+                        from app.services.voice.speaker import is_speaking, interrupt_speech
+                        if is_speaking() and _check_interrupt(text):
+                            interrupt_speech()
+                            for cb in _interrupt_callbacks:
+                                cb(text)
+                            continue
+
+                        if _check_wake_word(text):
+                            logger.info(f"Wake word detected: {text}")
+                            for cb in _wake_callbacks:
+                                cb(text)
 
             except Exception as e:
                 logger.error(f"Wake word error: {e}")
@@ -125,13 +107,14 @@ def start_wake_word_listener():
     thread.start()
     return thread
 
+
 def set_handling():
-    """Call when entering a voice command session — pauses the wake word listener."""
+    """Pause wake-word listener — mic handed to command session."""
     _handling.set()
     logger.debug("[wake_word] mic handed to command session")
 
 def clear_handling():
-    """Call when exiting a voice command session — resumes the wake word listener."""
+    """Resume wake-word listener — mic returned."""
     _handling.clear()
     logger.debug("[wake_word] mic returned to wake word listener")
 
