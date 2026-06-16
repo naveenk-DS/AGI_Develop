@@ -6,9 +6,22 @@ import soundfile as sf
 from loguru import logger
 from app.services.voice.language_config import USER_PROFILE
 
-DEVICE_ID   = 6
+import sounddevice as sd
+
+DEVICE_ID = sd.default.device[0]
+try:
+    if DEVICE_ID is not None and DEVICE_ID >= 0:
+        device_info = sd.query_devices(DEVICE_ID)
+        CHANNELS = int(device_info['max_input_channels'])
+    else:
+        DEVICE_ID = None
+        CHANNELS = 1
+except Exception as e:
+    logger.warning(f"Could not query audio devices: {e}. Defaulting to 1 channel.")
+    DEVICE_ID = None
+    CHANNELS = 1
+
 SAMPLE_RATE = 16000
-CHANNELS    = 1   # device 6 uses 1 channel
 
 _model = None
 
@@ -21,7 +34,7 @@ def get_model():
         from faster_whisper import WhisperModel
         device  = "cuda" if torch.cuda.is_available() else "cpu"
         compute = "float16" if device == "cuda" else "int8"
-        _model  = WhisperModel("medium", device=device, compute_type=compute)
+        _model = WhisperModel("large-v3-turbo", device="cuda", compute_type="float16")
         logger.info(f"Faster-Whisper loaded on {device}")
     return _model
 
@@ -57,14 +70,18 @@ def record_until_silence(
     while total_chunks < max_chunks:
         # sd.rec() + sd.wait() = guaranteed 300ms of REAL mic audio per iteration.
         # Unlike sd.InputStream, this cannot return stale buffered zeros.
-        raw = sd.rec(
-            chunk_size,
-            samplerate=SAMPLE_RATE,
-            channels=CHANNELS,
-            dtype="float32",
-            device=DEVICE_ID,
-        )
-        sd.wait()   # blocks until hardware captures chunk_size fresh samples
+        try:
+            raw = sd.rec(
+                chunk_size,
+                samplerate=SAMPLE_RATE,
+                channels=CHANNELS,
+                dtype="float32",
+                device=DEVICE_ID,
+            )
+            sd.wait()   # blocks until hardware captures chunk_size fresh samples
+        except Exception as e:
+            logger.error(f"Failed to record audio (no device?): {e}")
+            return np.array([], dtype=np.float32)
 
         # flatten to 1-D
         chunk = raw.flatten() if raw.ndim <= 1 else raw.mean(axis=1)

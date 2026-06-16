@@ -1,3 +1,4 @@
+from core.advanced_rag import advanced_rag_query
 from loguru import logger
 from typing import Callable, Any
 import asyncio

@@ -61,7 +61,7 @@ def speak(text: str, language: str = None):
         return
 
     logger.info(f"NAVIX ({lang}): {text}")
-    print(f"\n\U0001f916 NAVIX: {text}\n")
+    print(f"\n[NAVIX]: {text}\n")
 
     _interrupt.clear()
     _speaking = True
@@ -94,39 +94,21 @@ def _clean(text: str) -> str:
 
 # ── Tier 1: Kokoro (offline, GPU) ─────────────────────────────────────────────
 def _speak_kokoro(text: str) -> bool:
-    """Generate audio with Kokoro and play via sounddevice. Returns True on success."""
-    pipeline = _get_kokoro()
-    if pipeline is None:
-        return False
-
     try:
-
-        all_audio = []
+        import sounddevice as sd
+        sd.stop()
+        
+        pipeline = _get_kokoro()
         for _, _, audio in pipeline(text, voice=KOKORO_VOICE, speed=KOKORO_SPEED):
             if _interrupt.is_set():
                 return True
-            if audio is not None and len(audio) > 0:
-                all_audio.append(np.array(audio, dtype=np.float32))
-
-        if not all_audio:
-            return False
-
-        # Play audio using an independent OutputStream to avoid PortAudio deadlocks
-        full_audio = np.concatenate(all_audio)
-        
-        with sd.OutputStream(samplerate=SAMPLE_RATE_KO, channels=1) as stream:
-            chunk_size = int(SAMPLE_RATE_KO * 0.1)  # 100ms chunks for responsiveness
-            for i in range(0, len(full_audio), chunk_size):
-                if _interrupt.is_set():
-                    break
-                stream.write(full_audio[i:i+chunk_size])
-
+            # use default output device
+            sd.play(audio, samplerate=24000)
+            sd.wait()
         return True
-
     except Exception as e:
         logger.warning(f"Kokoro TTS failed: {e}")
         return False
-
 
 # ── Tier 2: Edge TTS (online, high quality) ───────────────────────────────────
 def _speak_edge(text: str, lang: str = "english"):
