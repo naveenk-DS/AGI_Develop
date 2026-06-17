@@ -1,0 +1,50 @@
+# ── Python cache ──────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# ── Virtual environments (don't ship these — Docker installs fresh) ──
+.venv/
+.venv_linux/
+.venv_old/
+venv/
+env/
+
+# ── HUGE folders — keep on host or external storage ──────────────
+backups/
+training/
+unsloth_compiled_cache/
+
+# ── Dev/test artifacts ────────────────────────────────────────────
+.pytest_cache/
+tests/
+*.log
+logs/
+screenshots/
+
+# ── IDE / OS ──────────────────────────────────────────────────────
+.git/
+.gitignore
+.vscode/
+*.DS_Store
+Thumbs.db
+New folder/
+
+# ── Sensitive files ───────────────────────────────────────────────
+.env
+*.key
+*.pem
+
+# ── Large media / temp files ──────────────────────────────────────
+*.mp3
+*.wav
+*.zip
+ffmpeg/
+test_*.py
+text.txt
+test.txt
+*.pdf
+*.html
+scratch_workflow.json

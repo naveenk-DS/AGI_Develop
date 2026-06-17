@@ -206,11 +206,21 @@ async def rag_node(state: AgentState) -> AgentState:
 # ── Node 5c — Browser ─────────────────────────────────────────────────────────
 async def browser_node(state: AgentState) -> AgentState:
     try:
+        text_lower = state["user_input"].lower()
+
+        # Click or fill commands → use Playwright DOM automation
+        if any(w in text_lower for w in ["click", "fill"]):
+            from app.services.browser_voice_parser import execute_voice_browser_command
+            result = await execute_voice_browser_command(state["user_input"])
+            response = result or "Could not do that on the page."
+            return {**state, "tool_result": response, "response": response}
+
+        # Simple open/search commands → keep using webbrowser module
         from app.services.command_parser import execute_browser_command
         result = await execute_browser_command(state["user_input"])
         response = result or "Done."
-        logger.info(f"Browser node complete: {response}")
         return {**state, "tool_result": response, "response": response}
+
     except Exception as e:
         logger.error(f"Browser error: {e}")
         return {**state, "response": f"Browser error: {e}"}
