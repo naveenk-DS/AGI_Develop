@@ -69,7 +69,7 @@ async def preload_models():
         get_embeddings()
 
         logger.info("Preloading graph...")
-        get_graph()
+        await get_graph()
 
         logger.info("Preloading emotion model...")
         get_emotion_classifier()

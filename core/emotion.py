@@ -17,7 +17,7 @@ async def detect_emotion_async(text: str) -> str:
             r = await client.post(
                 "http://127.0.0.1:11434/api/generate",
                 json={
-                    "model": "llama3.1",
+                    "model": "qwen2.5:7b",
                     "prompt": (
                         f"Detect emotion in one word only from: joy, sadness, anger, fear, surprise, neutral.\n"
                         f"Text: {text[:150]}\n"

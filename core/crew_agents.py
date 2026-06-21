@@ -4,7 +4,7 @@ from loguru import logger
 
 def get_crew_llm():
     return LLM(
-        model="ollama/llama3.1",
+        model="ollama/qwen2.5:7b",
         base_url="http://127.0.0.1:11434"
     )
 

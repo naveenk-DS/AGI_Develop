@@ -13,8 +13,7 @@ from app.services.voice.wake_word import start_wake_word_listener, add_wake_call
 import httpx
 
 OLLAMA_URL  = "http://127.0.0.1:11434/api/generate"
-NAVIX_MODEL = "navix-personality"
-
+NAVIX_MODEL = "qwen2.5:7b"
 SYSTEM_PROMPT = (
     "You are NAVIX, Naveen's personal AI companion. "
     "Talk naturally like a close friend who knows him well. "
@@ -34,7 +33,7 @@ async def ask_model(prompt: str, context: str = "", fallback: str = "") -> str:
 
     for attempt in range(2):   # try twice
         try:
-            async with httpx.AsyncClient(timeout=60) as client:   # 60s — llama3.1 can be slow
+            async with httpx.AsyncClient(timeout=60) as client:   # 60s — qwen2.5:7b can be slow
                 r = await client.post(
                     OLLAMA_URL,
                     json={
@@ -295,61 +294,110 @@ async def handle_wake_word(text: str):
             speak(confirm)
             continue
 
-        # ── PC commands ───────────────────────────────────────────────────────
-        from app.services.pc_command_parser import execute_pc_command
-        pc_result = await execute_pc_command(command)
-        if pc_result:
+        # ── Intent-based routing ──────────────────────────────────────────────
+        # ── Intent classification — model decides routing ────────────────────
+        from app.services.intent_classifier import classify_intent
+        intent = await classify_intent(command)
+        logger.info(f"Intent: {intent}")
+
+        if intent == "pc":
+            from app.services.pc_command_parser import execute_pc_command
+            result = await execute_pc_command(command)
             response = await ask_model(
-                f"You just did: {pc_result}. Confirm casually. 1 sentence.",
+                f"You just did: {result}. Confirm casually. 1 sentence.",
                 fallback="Done!"
             )
             set_tray_state("talking")
             speak(response)
+            set_tray_state("active")
             continue
 
-        # ── Browser / app commands ────────────────────────────────────────────
-        from app.services.command_parser import execute_browser_command
-        browser_result = await execute_browser_command(command)
-        if browser_result:
+        elif intent == "browser":
+            from app.services.command_parser import execute_browser_command
+            result = await execute_browser_command(command)
             response = await ask_model(
-                f"You just did: {browser_result}. Confirm casually. 1 sentence.",
+                f"You just did: {result}. Confirm casually. 1 sentence.",
                 fallback="Done!"
             )
             set_tray_state("talking")
             speak(response)
+            set_tray_state("active")
             continue
 
-        # ── Everything else — AI handles ──────────────────────────────────────
-        set_tray_state("talking")
-        speak("Hmm, let me think...")   # instant feedback while model processes
-        response = await ask_model(
-            command,
-            fallback="I didn't quite get that, Naveen. Can you say it again?"
-        )
-        speak(response)
-        set_tray_state("active")
+        elif intent == "rag":
+            set_tray_state("talking")
+            response = await process_command(command)
+            speak(response or "I couldn't find that in your documents.")
+            set_tray_state("active")
+            continue
+
+        elif intent == "vision":
+            from app.services.vision import describe_screen
+            set_tray_state("talking")
+            result = await describe_screen(command)
+            speak(result)
+            set_tray_state("active")
+            continue
+
+        elif intent == "code":
+            set_tray_state("talking")
+            from app.services.code_writer import write_code_to_file
+            response = await write_code_to_file(command)
+            speak(response)
+            set_tray_state("active")
+            continue
+
+        else:  # chat
+            set_tray_state("talking")
+            response = await ask_model(
+                command,
+                fallback="I didn't quite get that, Naveen. Can you say it again?"
+            )
+            speak(response)
+            set_tray_state("active")
+            continue
+
+        intent = await classify_intent(command)
+        logger.info(f"Intent: {intent}")
+
+        if intent == "browser":
+            from app.services.command_parser import execute_browser_command
+            result = await execute_browser_command(command)
+            response = await ask_model(f"You just did: {result}. Confirm casually. 1 sentence.", fallback="Done!")
+            speak(response)
+            continue
+
+        elif intent == "pc":
+            from app.services.pc_command_parser import execute_pc_command
+            result = await execute_pc_command(command)
+            response = await ask_model(f"You just did: {result}. Confirm casually. 1 sentence.", fallback="Done!")
+            speak(response)
+            continue
+
+        elif intent == "rag":
+            response = await process_command(command)  # routes through LangGraph → RAG node
+            speak(response)
+            continue
+
+        else:  # chat
+            response = await ask_model(command, fallback="I didn't catch that, can you say it again?")
+            speak(response)
+            continue
 
 
 # ── Graph-based command processing ───────────────────────────────────────────
 
-async def process_command(text: str) -> str:
-    """
-    Route a text command through the full NAVIX LangGraph pipeline.
-
-    1. Fetches personal memory context.
-    2. Builds the initial AgentState.
-    3. Invokes the graph asynchronously.
-    4. Returns the final spoken response string.
-    """
+async def process_command(text: str, thread_id: str = "navix-main") -> str:
     try:
         from core.graph import get_graph
         from app.services.personal_memory import get_context_for_ai
+        from langchain_core.messages import HumanMessage
 
         personal_context = await get_context_for_ai()
-        graph = get_graph()
+        graph = await get_graph()
 
         state = {
-            "messages":         [],
+            "messages":         [HumanMessage(content=text)],
             "user_input":       text,
             "understood":       "",
             "plan":             [],
@@ -362,7 +410,8 @@ async def process_command(text: str) -> str:
             "personal_context": personal_context,
         }
 
-        result = await graph.ainvoke(state)
+        config = {"configurable": {"thread_id": thread_id}}
+        result = await graph.ainvoke(state, config=config)
         return result["response"]
 
     except Exception as e:

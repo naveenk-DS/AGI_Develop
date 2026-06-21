@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NAVIX — Advanced HUD Interface</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap"
+    rel="stylesheet" />
+</head>
+
+<body>
+
+  <!-- Scanline overlay -->
+  <div class="scanlines"></div>
+  <div class="vignette"></div>
+
+  <!-- Corner decorations -->
+  <div class="corner top-left"></div>
+  <div class="corner top-right"></div>
+  <div class="corner bot-left"></div>
+  <div class="corner bot-right"></div>
+
+  <!-- LEFT PANEL -->
+  <aside class="panel panel-left">
+    <div class="panel-header blink-slow">◈ SYSTEM STATUS</div>
+
+    <div class="stat-block">
+      <span class="label">CORE TEMP</span>
+      <div class="bar-wrap">
+        <div class="bar" id="bar-temp" style="width:72%"></div>
+      </div>
+      <span class="value" id="val-temp">72°C</span>
+    </div>
+
+    <div class="stat-block">
+      <span class="label">MEMORY</span>
+      <div class="bar-wrap">
+        <div class="bar amber" id="bar-mem" style="width:58%"></div>
+      </div>
+      <span class="value" id="val-mem">58%</span>
+    </div>
+
+    <div class="stat-block">
+      <span class="label">CPU LOAD</span>
+      <div class="bar-wrap">
+        <div class="bar cyan" id="bar-cpu" style="width:41%"></div>
+      </div>
+      <span class="value" id="val-cpu">41%</span>
+    </div>
+
+    <div class="stat-block">
+      <span class="label">NEURAL NET</span>
+      <div class="bar-wrap">
+        <div class="bar green" id="bar-net" style="width:89%"></div>
+      </div>
+      <span class="value" id="val-net">89%</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="panel-header">◈ AUDIO FEED</div>
+    <canvas id="waveCanvas" width="180" height="60"></canvas>
+
+    <div class="divider"></div>
+
+    <div class="data-list">
+      <div class="data-row blink-fast"><span class="dot red"></span> THREAT SCAN: CLEAR</div>
+      <div class="data-row"><span class="dot cyan"></span> VOICE: ACTIVE</div>
+      <div class="data-row blink-med"><span class="dot amber"></span> UPLINK: SYNCING</div>
+      <div class="data-row"><span class="dot green"></span> AI ENGINE: ONLINE</div>
+    </div>
+  </aside>
+
+  <!-- CENTER HUD -->
+  <main class="hud-center">
+    <!-- Rotating rings -->
+    <div class="ring-container">
+      <canvas id="ringCanvas" width="520" height="520"></canvas>
+
+      <!-- Center orb -->
+      <div class="orb-wrap">
+        <div class="orb-outer"></div>
+        <div class="orb-mid"></div>
+        <div class="orb-inner"></div>
+        <div class="orb-dot"></div>
+      </div>
+
+      <!-- Status label below orb -->
+      <div class="orb-status" id="orbStatus">◈ ONLINE</div>
+    </div>
+
+    <!-- Bottom data strip -->
+    <div class="bottom-strip">
+      <div class="strip-item"><span class="amber-text blink-slow">FREQ</span><br /><span id="freq-val">2.4 GHz</span>
+      </div>
+      <div class="strip-item"><span class="amber-text">LATENCY</span><br /><span id="lat-val">12ms</span></div>
+      <div class="strip-item"><span class="amber-text">PACKETS</span><br /><span id="pkt-val">4,821</span></div>
+      <div class="strip-item"><span class="amber-text blink-med">MODE</span><br /><span id="mode-val">ACTIVE</span>
+      </div>
+      <div class="strip-item"><span class="amber-text">SESSION</span><br /><span id="session-val">00:00:00</span></div>
+    </div>
+  </main>
+
+  <!-- RIGHT PANEL -->
+  <aside class="panel panel-right">
+    <div class="panel-header blink-slow">◈ INTELLIGENCE CORE</div>
+
+    <div class="metric-grid">
+      <div class="metric">
+        <div class="metric-val cyan-text" id="iq-val">98.4</div>
+        <div class="metric-lbl">IQ SCORE</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val amber-text" id="conf-val">96%</div>
+        <div class="metric-lbl">CONFIDENCE</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val green-text" id="lang-val">12</div>
+        <div class="metric-lbl">LANGUAGES</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val red-text blink-fast" id="alert-val">0</div>
+        <div class="metric-lbl">ALERTS</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="panel-header">◈ RECENT EVENTS</div>
+    <div class="log-feed" id="logFeed">
+      <div class="log-entry"><span class="log-time">19:43:01</span> Voice input detected</div>
+      <div class="log-entry"><span class="log-time">19:43:04</span> Graph traversal: OK</div>
+      <div class="log-entry"><span class="log-time">19:43:08</span> Memory write: 3 nodes</div>
+      <div class="log-entry"><span class="log-time">19:43:15</span> Response generated</div>
+      <div class="log-entry"><span class="log-time">19:43:22</span> Persona: NAVIX active</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="panel-header">◈ LOCATION</div>
+    <div class="location-box">
+      <div class="loc-row"><span class="label">LAT</span><span class="cyan-text" id="lat">13.0827° N</span></div>
+      <div class="loc-row"><span class="label">LON</span><span class="cyan-text" id="lon">80.2707° E</span></div>
+      <div class="loc-row"><span class="label">NODE</span><span class="amber-text blink-med">NAVIX-PRIME</span></div>
+    </div>
+  </aside>
+
+  <!-- TOP BAR -->
+  <header class="top-bar">
+    <div class="top-left-info">
+      <span class="title-text">N A V I X</span>
+      <span class="sub-text">AGI INTERFACE v3.0</span>
+    </div>
+    <div class="top-center">
+      <span class="amber-text blink-slow">▮▮▮</span>
+      <span id="clock" class="clock-text">--:--:--</span>
+      <span class="amber-text blink-slow">▮▮▮</span>
+    </div>
+    <div class="top-right-info">
+      <span class="sub-text">SECURE CHANNEL</span>
+      <span class="cyan-text blink-fast">● LIVE</span>
+    </div>
+  </header>
+
+  <script src="hud.js"></script>
+</body>
+
+</html>

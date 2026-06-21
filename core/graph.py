@@ -8,6 +8,12 @@ from core.emotion import detect_emotion, get_emotional_prefix
 from loguru import logger
 import operator
 
+import aiosqlite
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
+_graph = None
+_checkpointer = None
+
 # ── OODA System Prompt ────────────────────────────────────────────────────────
 OODA_SYSTEM = """You are NAVIX, Naveen's personal AI operating system.
 
@@ -130,19 +136,29 @@ async def plan_node(state: AgentState) -> AgentState:
         ]):
             return {**state, "tool": "code", "plan": ["understand requirement", "write code", "verify"]}
 
-        if any(w in user_input for w in [
-            "research", "find out", "investigate", "deep dive",
-            "explain everything about", "tell me all about"
-        ]):
-            return {**state, "tool": "research", "plan": ["research topic", "summarize", "respond"]}
-
+     
         # LLM decides for everything else
         messages = [
             SystemMessage(content=OODA_SYSTEM),
             HumanMessage(content=(
                 f"Goal: {state['understood']}\n\n"
                 "Which tool should handle this?\n"
-                "Options: chat, rag, browser, pc, memory, code, research\n"
+                "Options: chat, rag, browser, pc, memory, code\n"
+                "Reply with ONLY the tool name. Nothing else."
+            ))
+        ]
+        result = await llm.ainvoke(messages)
+        tool = result.content.strip().lower()
+
+        valid_tools = ["chat", "rag", "browser", "pc", "memory", "code"]
+        if tool not in valid_tools:
+            tool = "chat"
+        messages = [
+            SystemMessage(content=OODA_SYSTEM),
+            HumanMessage(content=(
+                f"Goal: {state['understood']}\n\n"
+                "Which tool should handle this?\n"
+                "Options: chat, rag, browser, pc, memory, code\n"
                 "Reply with ONLY the tool name. Nothing else."
             ))
         ]
@@ -150,7 +166,7 @@ async def plan_node(state: AgentState) -> AgentState:
         tool = result.content.strip().lower()
 
         # validate tool name
-        valid_tools = ["chat", "rag", "browser", "pc", "memory", "code", "research"]
+        valid_tools = ["chat", "rag", "browser", "pc", "memory", "code"]
         if tool not in valid_tools:
             tool = "chat"
 
@@ -177,14 +193,24 @@ async def chat_node(state: AgentState) -> AgentState:
         emotional_prefix = get_emotional_prefix(state["user_input"])
         personal_context = state.get("personal_context", "")
 
+        history = state.get("messages", [])
+        recent_history = history[-10:]  # last 10 messages, prevents unbounded growth
+
         messages = [
-            SystemMessage(content=f"{OODA_SYSTEM}\n\n{personal_context}"),
-            HumanMessage(content=state["user_input"])
-        ]
+            SystemMessage(content=f"{OODA_SYSTEM}\n\n{personal_context}")
+        ] + recent_history
+
         result = await llm.ainvoke(messages)
         response = emotional_prefix + result.content.strip()
+
+        from langchain_core.messages import AIMessage
         logger.info("Chat node complete")
-        return {**state, "tool_result": response, "response": response}
+        return {
+            **state,
+            "tool_result": response,
+            "response": response,
+            "messages": [AIMessage(content=response)]  # appended via operator.add
+        }
     except Exception as e:
         logger.error(f"Chat error: {e}")
         return {**state, "response": "Sorry something went wrong."}
@@ -320,35 +346,13 @@ async def research_node(state: AgentState) -> AgentState:
 
 # ── Node 6 — Verify ──────────────────────────────────────────────────────────
 async def verify_node(state: AgentState) -> AgentState:
-    """Ask Naveen by voice if it worked."""
-    try:
-        from app.services.voice.speaker import speak
-        from app.services.voice.listener import listen_once
-
-        tool = state.get("tool", "chat")
-
-        # only verify for actions — not for chat or memory
-        if tool in ["chat", "memory", "rag"]:
-            return {**state, "verified": True}
-
-        # ask Naveen
-        speak("Did that work okay?")
-        answer = listen_once(duration=5)
-
-        if answer and any(w in answer.lower() for w in [
-            "yes", "yeah", "yep", "good", "great",
-            "works", "working", "perfect", "okay", "ok"
-        ]):
-            verified = True
-            logger.info("Verified: yes")
-        else:
-            verified = False
-            logger.info(f"Verified: no — Naveen said: {answer}")
-
-        return {**state, "verified": verified}
-    except Exception as e:
-        logger.error(f"Verify error: {e}")
-        return {**state, "verified": True}
+    """Trust the tool's own success/failure signal instead of interrupting Naveen."""
+    tool_result = state.get("tool_result", "")
+    # treat explicit failure language from the tool itself as unverified,
+    # otherwise assume success without asking
+    failure_signals = ["error", "could not", "failed", "couldn't", "unable to"]
+    verified = not any(sig in tool_result.lower() for sig in failure_signals)
+    return {**state, "verified": verified}
 
 
 # ── Node 7 — Respond ─────────────────────────────────────────────────────────
@@ -438,14 +442,22 @@ def build_graph():
     graph.add_edge("verify",  "respond")
     graph.add_edge("respond", END)
 
-    return graph.compile()
+    return graph
 
 
 _graph = None
 
-def get_graph():
+async def get_checkpointer():
+    global _checkpointer
+    if _checkpointer is None:
+        conn = await aiosqlite.connect("F:/naveen/AGI_Start/data/navix_state.db")
+        _checkpointer = AsyncSqliteSaver(conn)
+    return _checkpointer
+
+async def get_graph():
     global _graph
     if _graph is None:
-        _graph = build_graph()
-        logger.info("LangGraph compiled — START→input→understand→plan→[tool]→verify→respond→END")
+        graph = build_graph()
+        checkpointer = await get_checkpointer()
+        _graph = graph.compile(checkpointer=checkpointer)
     return _graph

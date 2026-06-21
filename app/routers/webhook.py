@@ -32,7 +32,7 @@ async def webhook_chat(
     personal_context = await get_context_for_ai()
     history = await get_history(db, body.session_id)
 
-    graph = get_graph()
+    graph = await get_graph()
     state = {
         "messages": history,
         "user_input": body.message,
@@ -61,4 +61,4 @@ async def webhook_chat(
 
 @router.get("/test")
 async def webhook_test(api_key: str = Depends(verify_key)):
-    return {"status": "webhook authenticated", "message": "API key is valid"}
+    return {"status": "webhook authenticated", "message": "API key is valid"}

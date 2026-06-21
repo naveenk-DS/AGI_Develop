@@ -10,7 +10,7 @@ from loguru import logger
 # ── Ollama config ──────────────────────────────────────────────────────────────
 _OLLAMA_URL   = "http://localhost:11434/api/generate"
 _NAVIX_MODEL  = "navix-personality"   # created from training/Modelfile
-_FALLBACK_MODEL = "llama3.1"          # fallback if navix-personality not found
+_FALLBACK_MODEL = "qwen2.5:7b"          # fallback if navix-personality not found
 
 # ── Tight prompts for each personality slot ───────────────────────────────────
 _PROMPTS = {
