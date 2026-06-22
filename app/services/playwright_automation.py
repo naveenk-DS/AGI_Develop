@@ -178,7 +178,7 @@ async def _voice_click(url: str, spoken_instruction: str, existing_page=None) ->
         # Ask LLM to match spoken instruction to the right element
         from core.llm import get_llm
         llm = get_llm()
-        elements_list = "\n".join([f"{e['index']}: {e['text']} ({e['tag']})" for e in elements])
+        elements_list = "\n".join([f"{i}: {e['text']} ({e['tag']})" for i, e in enumerate(elements)])
 
         prompt = (
             f"Naveen said: 'click {spoken_instruction}'\n\n"
@@ -225,7 +225,7 @@ async def _voice_fill(url: str, spoken_field: str, value: str, existing_page=Non
 
         from core.llm import get_llm
         llm = get_llm()
-        fields_list = "\n".join([f"{f['index']}: {f['label']} ({f['type']})" for f in fields])
+        fields_list = "\n".join([f"{i}: {f['label']} ({f['type']})" for i, f in enumerate(fields)])
 
         prompt = (
             f"Naveen said: 'fill {spoken_field} with {value}'\n\n"
