@@ -30,90 +30,50 @@ const rCtx = ringCanvas.getContext('2d');
 const CX = ringCanvas.width / 2;
 const CY = ringCanvas.height / 2;
 
-const rings = [
-  { r: 240, speed: 0.003, dashes: 48, w: 1.5, color: '#00f5ff', alpha: 0.8, angle: 0 },
-  { r: 215, speed: -0.005, dashes: 36, w: 2, color: '#00f5ff', alpha: 0.6, angle: Math.PI / 6 },
-  { r: 185, speed: 0.007, dashes: 0, w: 1, color: '#00f5ff', alpha: 0.3, angle: 0 },
-  { r: 165, speed: -0.009, dashes: 24, w: 2.5, color: '#ff9800', alpha: 0.7, angle: 0 },
-  { r: 145, speed: 0.012, dashes: 0, w: 1, color: '#ff9800', alpha: 0.2, angle: 0 },
-  { r: 125, speed: -0.015, dashes: 60, w: 1, color: '#00f5ff', alpha: 0.5, angle: Math.PI / 4 },
-  { r: 105, speed: 0.02, dashes: 12, w: 3, color: '#ff9800', alpha: 0.9, angle: 0 },
-  { r: 80, speed: -0.025, dashes: 8, w: 2, color: '#00ff88', alpha: 0.6, angle: 0 },
-  { r: 58, speed: 0.03, dashes: 0, w: 4, color: '#00f5ff', alpha: 0.9, angle: 0 },
-];
-
-// Ticks on outer ring
-const TICK_COUNT = 72;
-
-// Spiral arm data
-let spiralPhase = 0;
+let timePhase = 0;
 
 function drawRings(ts) {
   rCtx.clearRect(0, 0, ringCanvas.width, ringCanvas.height);
+  timePhase += 0.005;
 
-  // ── tick marks outer ──
-  rCtx.save();
-  rCtx.translate(CX, CY);
-  for (let i = 0; i < TICK_COUNT; i++) {
-    const angle = (i / TICK_COUNT) * Math.PI * 2;
-    const inner = 238; const outer = i % 6 === 0 ? 248 : 243;
-    const lw = i % 6 === 0 ? 2 : 1;
-    const alpha = i % 6 === 0 ? 1 : 0.4;
-    rCtx.strokeStyle = `rgba(0,245,255,${alpha})`;
-    rCtx.lineWidth = lw;
-    rCtx.shadowColor = '#00f5ff';
-    rCtx.shadowBlur = lw === 2 ? 6 : 2;
-    rCtx.beginPath();
-    rCtx.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
-    rCtx.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer);
-    rCtx.stroke();
-  }
-  rCtx.restore();
+  // ── Draw atomic orbitals (Purple Spirograph) ──
+  const ORBITAL_COUNT = 6;
+  const rx = 230;
+  const ry = 70;
 
-  // ── Draw rings ──
-  rings.forEach(ring => {
-    ring.angle += ring.speed;
+  for (let i = 0; i < ORBITAL_COUNT; i++) {
     rCtx.save();
     rCtx.translate(CX, CY);
-    rCtx.rotate(ring.angle);
-    rCtx.strokeStyle = ring.color;
-    rCtx.globalAlpha = ring.alpha;
-    rCtx.lineWidth = ring.w;
-    rCtx.shadowColor = ring.color;
-    rCtx.shadowBlur = 10;
-    if (ring.dashes > 0) {
-      const dash = (2 * Math.PI * ring.r) / (ring.dashes * 2);
-      rCtx.setLineDash([dash * 0.6, dash * 1.4]);
-    } else {
-      rCtx.setLineDash([]);
-    }
+
+    // Rotate each orbital evenly around the center, plus slow spin
+    const baseAngle = (i * Math.PI) / ORBITAL_COUNT;
+    rCtx.rotate(baseAngle + timePhase * (i % 2 === 0 ? 1 : -1));
+
+    rCtx.strokeStyle = '#0099ff'; // Neon blue
+    rCtx.globalAlpha = 0.5 + Math.sin(timePhase * 3 + i) * 0.2;
+    rCtx.lineWidth = 1.5;
+    rCtx.shadowColor = '#0099ff';
+    rCtx.shadowBlur = 15;
+
     rCtx.beginPath();
-    rCtx.arc(0, 0, ring.r, 0, Math.PI * 2);
+    // Undulating size for a dynamic "living" effect
+    const pulseRy = ry + Math.sin(timePhase * 2 + i) * 20;
+    rCtx.ellipse(0, 0, rx, pulseRy, 0, 0, 2 * Math.PI);
     rCtx.stroke();
     rCtx.restore();
-  });
+  }
 
-  // ── Spiral sweep arm ──
-  spiralPhase += 0.015;
+  // ── Outer framing ring ──
   rCtx.save();
   rCtx.translate(CX, CY);
-  const grad = rCtx.createConicalGradient
-    ? null  // canvas doesn't have conical gradient natively; skip
-    : null;
-
-  // Draw sweep line
-  rCtx.rotate(spiralPhase);
-  rCtx.globalAlpha = 0.35;
-  const swGrad = rCtx.createLinearGradient(0, 0, 240, 0);
-  swGrad.addColorStop(0, 'rgba(0,245,255,0.9)');
-  swGrad.addColorStop(1, 'rgba(0,245,255,0)');
-  rCtx.strokeStyle = swGrad;
-  rCtx.lineWidth = 2;
-  rCtx.shadowBlur = 0;
-  rCtx.setLineDash([]);
+  rCtx.rotate(-timePhase * 0.5);
+  rCtx.strokeStyle = 'rgba(0, 153, 255, 0.4)';
+  rCtx.lineWidth = 1.5;
+  rCtx.shadowColor = '#0099ff';
+  rCtx.shadowBlur = 5;
+  rCtx.setLineDash([4, 12, 20, 12]);
   rCtx.beginPath();
-  rCtx.moveTo(0, 0);
-  rCtx.lineTo(240, 0);
+  rCtx.arc(0, 0, 245, 0, Math.PI * 2);
   rCtx.stroke();
   rCtx.restore();
 

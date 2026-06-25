@@ -1,0 +1,385 @@
+/* ═══════════════════════════════════════════════
+   overlays.css — Mode Selection & PIN Screen
+   ~380 lines
+═══════════════════════════════════════════════ */
+
+/* ══════════════════════════
+   MODE SELECTION OVERLAY
+══════════════════════════ */
+.mode-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000408;
+  transition: opacity 0.7s ease, visibility 0.7s ease;
+}
+
+.mode-overlay.hiding {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Horizontal scan line */
+.mode-scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(to right, transparent, rgba(0, 153, 255, 0.5), transparent);
+  animation: scanMove 4s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mode-container {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 48px;
+}
+
+.mode-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Logo spinning rings (reuse pin-ring classes) */
+.pin-logo-rings {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pin-ring {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.pin-ring.r1 {
+  border: 2px solid rgba(0, 153, 255, 0.7);
+  animation: spinRing1 4s linear infinite;
+}
+
+.pin-ring.r2 {
+  border: 2px solid rgba(0, 153, 255, 0.5);
+  animation: spinRing2 6s linear infinite;
+}
+
+.pin-ring.r3 {
+  border: 1px dashed rgba(0, 153, 255, 0.3);
+  animation: spinRing3 8s linear infinite;
+}
+
+.pin-orb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 20px var(--cyan), 0 0 60px rgba(0, 153, 255, 0.5);
+  animation: orbPulse 2s ease-in-out infinite;
+}
+
+.mode-title {
+  font-family: var(--font-hud);
+  font-size: 3.2rem;
+  font-weight: 900;
+  letter-spacing: 0.65em;
+  color: var(--cyan);
+  text-shadow: var(--glow-c), 0 0 60px rgba(0, 153, 255, 0.3);
+}
+
+.mode-subtitle {
+  font-size: 0.72rem;
+  letter-spacing: 0.26em;
+  color: rgba(0, 153, 255, 0.55);
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* Mode cards */
+.mode-cards {
+  display: flex;
+  gap: 40px;
+}
+
+.mode-card {
+  width: 260px;
+  padding: 40px 28px;
+  background: rgba(0, 153, 255, 0.03);
+  border: 1px solid rgba(0, 153, 255, 0.2);
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.mode-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  background: rgba(0, 153, 255, 0.08);
+  border-color: var(--cyan);
+  box-shadow: var(--glow-c), inset 0 0 20px rgba(0, 153, 255, 0.04);
+}
+
+.mode-card-online:hover {
+  background: rgba(255, 152, 0, 0.08);
+  border-color: var(--amber);
+  box-shadow: var(--glow-a), inset 0 0 20px rgba(255, 152, 0, 0.04);
+}
+
+.mode-card.card-selected {
+  transform: scale(0.96);
+  box-shadow: 0 0 40px rgba(0, 153, 255, 0.5);
+}
+
+.mode-card-online.card-selected {
+  box-shadow: 0 0 40px rgba(255, 152, 0, 0.5);
+}
+
+.mode-card-icon {
+  font-size: 3rem;
+  color: var(--cyan);
+  text-shadow: var(--glow-c);
+  line-height: 1;
+}
+
+.mode-card-name {
+  font-family: var(--font-hud);
+  font-size: 1.3rem;
+  font-weight: 900;
+  letter-spacing: 0.35em;
+  color: var(--cyan);
+  text-shadow: var(--glow-c);
+}
+
+.mode-card-desc {
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  line-height: 2;
+  color: rgba(0, 153, 255, 0.6);
+}
+
+.mode-card-tag {
+  font-size: 0.58rem;
+  letter-spacing: 0.2em;
+  margin-top: 6px;
+}
+
+.mode-footer {
+  font-size: 0.55rem;
+  letter-spacing: 0.15em;
+  color: rgba(0, 153, 255, 0.35);
+  text-align: center;
+}
+
+/* ══════════════════════════
+   PIN LOCK OVERLAY
+══════════════════════════ */
+.pin-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 4, 8, 0.95);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.pin-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.pin-overlay.hiding {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.pin-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  position: relative;
+  z-index: 10;
+}
+
+/* Spinning rings */
+.pin-logo-rings.large {
+  width: 120px;
+  height: 120px;
+}
+
+.pin-title {
+  font-family: var(--font-hud);
+  font-size: 1.6rem;
+  font-weight: 900;
+  letter-spacing: 0.5em;
+  color: var(--cyan);
+  text-shadow: var(--glow-c);
+}
+
+.pin-subtitle {
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  color: rgba(0, 153, 255, 0.5);
+  text-align: center;
+  margin-top: -16px;
+}
+
+/* Dot display */
+.pin-display {
+  display: flex;
+  gap: 16px;
+}
+
+.pin-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 153, 255, 0.4);
+  background: transparent;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.pin-dot.filled {
+  background: var(--cyan);
+  border-color: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan), 0 0 20px rgba(0, 153, 255, 0.5);
+}
+
+.pin-dot.error {
+  border-color: var(--red);
+  background: var(--red);
+  box-shadow: 0 0 10px var(--red);
+}
+
+.pin-dot.success {
+  border-color: var(--green);
+  background: var(--green);
+  box-shadow: 0 0 10px var(--green);
+}
+
+.pin-shake {
+  animation: pinShake 0.4s ease;
+}
+
+.pin-message {
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  color: var(--amber);
+  text-shadow: var(--glow-a);
+  text-align: center;
+  min-height: 1em;
+}
+
+.pin-message.error {
+  color: var(--red);
+  text-shadow: var(--glow-r);
+}
+
+.pin-message.success {
+  color: var(--green);
+  text-shadow: var(--glow-g);
+}
+
+/* Numpad */
+.pin-numpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 240px;
+}
+
+.pin-btn {
+  font-family: var(--font-hud);
+  font-size: 1rem;
+  font-weight: 700;
+  height: 52px;
+  border-radius: 6px;
+  background: rgba(0, 153, 255, 0.05);
+  border: 1px solid rgba(0, 153, 255, 0.2);
+  color: var(--cyan);
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pin-btn:hover {
+  background: rgba(0, 153, 255, 0.12);
+  border-color: var(--cyan);
+  box-shadow: var(--glow-c);
+}
+
+.pin-btn:active {
+  transform: scale(0.94);
+}
+
+.pin-btn.del {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: var(--amber);
+  border-color: rgba(255, 152, 0, 0.3);
+}
+
+.pin-btn.del:hover {
+  background: rgba(255, 152, 0, 0.1);
+  border-color: var(--amber);
+  box-shadow: var(--glow-a);
+}
+
+.pin-btn.enter {
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  color: var(--green);
+  border-color: rgba(0, 255, 136, 0.3);
+}
+
+.pin-btn.enter:hover {
+  background: rgba(0, 255, 136, 0.1);
+  border-color: var(--green);
+  box-shadow: var(--glow-g);
+}
+
+.pin-change-btn {
+  font-size: 0.5rem;
+  letter-spacing: 0.15em;
+  color: rgba(0, 153, 255, 0.4);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.pin-change-btn:hover {
+  color: var(--cyan);
+}
+
+.pin-lockout {
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  color: var(--red);
+  text-shadow: var(--glow-r);
+  text-align: center;
+}

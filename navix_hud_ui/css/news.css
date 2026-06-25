@@ -1,0 +1,198 @@
+/* ═══════════════════════════════════════════════
+   news.css — AI News Ticker & Cards
+   Left panel ticker · Right panel cards · Badges
+   ~180 lines
+═══════════════════════════════════════════════ */
+
+/* ── NEWS BADGE ── */
+.news-badge {
+  display: inline-block;
+  font-size: 0.44rem;
+  letter-spacing: 0.15em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 4px;
+  background: rgba(0, 153, 255, 0.08);
+  color: var(--cyan);
+  border: 1px solid rgba(0, 153, 255, 0.2);
+  vertical-align: middle;
+}
+
+.news-badge.badge-online {
+  background: rgba(255, 152, 0, 0.1);
+  color: var(--amber);
+  border-color: rgba(255, 152, 0, 0.25);
+  animation: blinkSlow 2s ease-in-out infinite;
+}
+
+/* ── LEFT PANEL — TICKER ── */
+.news-ticker-left {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
+  min-height: 0;
+}
+
+.ticker-inner {
+  display: flex;
+  flex-direction: column;
+  animation: tickerScroll 40s linear infinite;
+  will-change: transform;
+}
+
+.ticker-inner:hover {
+  animation-play-state: paused;
+}
+
+.ticker-item {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 153, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ticker-item:hover {
+  background: rgba(0, 153, 255, 0.04);
+}
+
+.ticker-tag {
+  font-size: 0.44rem;
+  letter-spacing: 0.16em;
+  padding: 1px 5px;
+  border-radius: 2px;
+  background: rgba(0, 153, 255, 0.1);
+  color: var(--cyan);
+  display: inline-block;
+  align-self: flex-start;
+}
+
+.ticker-tag.live {
+  background: rgba(255, 152, 0, 0.12);
+  color: var(--amber);
+  animation: blinkSlow 2s infinite;
+}
+
+.ticker-tag.hot {
+  background: rgba(255, 59, 59, 0.12);
+  color: var(--red);
+}
+
+.ticker-tag.new {
+  background: rgba(0, 255, 136, 0.1);
+  color: var(--green);
+}
+
+.ticker-headline {
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+  color: rgba(0, 153, 255, 0.85);
+}
+
+.ticker-meta {
+  font-size: 0.46rem;
+  letter-spacing: 0.1em;
+  color: rgba(0, 153, 255, 0.4);
+}
+
+/* ── RIGHT PANEL — NEWS CARDS ── */
+.news-right-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 153, 255, 0.15) transparent;
+  mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+}
+
+.news-right-feed::-webkit-scrollbar {
+  width: 2px;
+}
+
+.news-right-feed::-webkit-scrollbar-thumb {
+  background: rgba(0, 153, 255, 0.2);
+  border-radius: 2px;
+}
+
+.news-card {
+  background: rgba(0, 153, 255, 0.03);
+  border: 1px solid rgba(0, 153, 255, 0.12);
+  border-radius: 5px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  animation: cardAppear 0.4s ease forwards;
+}
+
+.news-card:hover {
+  background: rgba(0, 153, 255, 0.07);
+  border-color: rgba(0, 153, 255, 0.3);
+}
+
+.news-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.news-card-tag {
+  font-size: 0.44rem;
+  letter-spacing: 0.14em;
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: rgba(0, 153, 255, 0.1);
+  color: var(--cyan);
+}
+
+.news-card-tag.live {
+  background: rgba(255, 152, 0, 0.12);
+  color: var(--amber);
+}
+
+.news-card-tag.hot {
+  background: rgba(255, 59, 59, 0.1);
+  color: var(--red);
+}
+
+.news-card-time {
+  font-size: 0.44rem;
+  letter-spacing: 0.1em;
+  color: rgba(0, 153, 255, 0.35);
+}
+
+.news-card-title {
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+  color: rgba(0, 153, 255, 0.82);
+  font-weight: 500;
+}
+
+.news-card-source {
+  font-size: 0.46rem;
+  letter-spacing: 0.1em;
+  color: rgba(0, 153, 255, 0.38);
+}
+
+/* Loading state */
+.news-loading {
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  color: rgba(0, 153, 255, 0.4);
+  text-align: center;
+  padding: 20px 0;
+  animation: blinkMed 1.5s ease-in-out infinite;
+}

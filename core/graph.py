@@ -68,8 +68,11 @@ class AgentState(TypedDict):
 # ── Node 1 — Input ────────────────────────────────────────────────────────────
 def input_node(state: AgentState) -> AgentState:
     """Receive voice input and detect emotion."""
+    import time
+    logger.info(f"[GRAPH TIMING] input_node start: {time.time()}")
     from core.emotion import detect_emotion
     emotion = detect_emotion(state["user_input"])
+    logger.info(f"[GRAPH TIMING] input_node end: {time.time()}")
     logger.info(f"Input received — emotion: {emotion}")
     return {**state, "emotion": emotion, "current_step": 0}
 
@@ -77,6 +80,9 @@ def input_node(state: AgentState) -> AgentState:
 # ── Node 2 — Understand ───────────────────────────────────────────────────────
 async def understand_node(state: AgentState) -> AgentState:
     """Understand what Naveen actually wants — intent over literal words."""
+    import time
+    t0 = time.time()
+    logger.info(f"[GRAPH TIMING] understand_node start")
     try:
         llm = get_llm()
         messages = [
@@ -89,7 +95,9 @@ async def understand_node(state: AgentState) -> AgentState:
                 "not just 'weather question'."
             ))
         ]
+        logger.info(f"[GRAPH TIMING] before llm.ainvoke: {time.time()-t0:.2f}s")
         result = await llm.ainvoke(messages)
+        logger.info(f"[GRAPH TIMING] after llm.ainvoke: {time.time()-t0:.2f}s")
         understood = result.content.strip()
         logger.info(f"Understood: {understood}")
         return {**state, "understood": understood}
@@ -102,6 +110,12 @@ async def understand_node(state: AgentState) -> AgentState:
 async def plan_node(state: AgentState) -> AgentState:
     """Break the goal into steps and pick the right tool."""
     try:
+         # if the caller already classified intent (e.g. NAVIX_AI's classify_intent),
+        # trust it instead of re-deciding and risking contradiction
+        known_tool = state.get("tool", "")
+        if known_tool in ("rag", "chat"):
+            logger.info(f"Plan — using pre-classified tool: {known_tool}")
+            return {**state, "plan": ["execute", "verify", "respond"]}
         llm = get_llm()
         user_input = state["user_input"].lower()
 
@@ -219,9 +233,18 @@ async def chat_node(state: AgentState) -> AgentState:
 # ── Node 5b — RAG ─────────────────────────────────────────────────────────────
 async def rag_node(state: AgentState) -> AgentState:
     try:
+        import asyncio
         chain = get_rag_chain()
-        result = chain.invoke({"query": state["user_input"]})
-        response = result["result"] if isinstance(result, dict) else str(result)
+        # get_rag_chain() returns a synchronous LangChain LCEL chain.
+        # Running chain.invoke() directly inside an async node would block the
+        # entire event loop. Offload to a thread-pool executor instead.
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None, lambda: chain.invoke({"query": state["user_input"]})
+        )
+        response = result if isinstance(result, str) else (
+            result.get("result", str(result)) if isinstance(result, dict) else str(result)
+        )
         logger.info("RAG node complete")
         return {**state, "tool_result": response, "response": response}
     except Exception as e:
@@ -445,19 +468,25 @@ def build_graph():
     return graph
 
 
-_graph = None
-
-async def get_checkpointer():
-    global _checkpointer
-    if _checkpointer is None:
-        conn = await aiosqlite.connect("F:/naveen/AGI_Start/data/navix_state.db")
-        _checkpointer = AsyncSqliteSaver(conn)
-    return _checkpointer
 
 async def get_graph():
-    global _graph
-    if _graph is None:
-        graph = build_graph()
-        checkpointer = await get_checkpointer()
-        _graph = graph.compile(checkpointer=checkpointer)
-    return _graph
+    """
+    Builds a fresh compiled graph with a fresh aiosqlite checkpointer each call.
+
+    WHY fresh every time?
+    aiosqlite opens an internal worker-thread that is bound to the event loop
+    that called `aiosqlite.connect()`. Reusing the same connection across
+    different invocations (or different event loops) causes the internal
+    asyncio.Queue dispatch to deadlock — manifesting as a 90-100 s hang on
+    graph.ainvoke().
+
+    WHY checkpointer.setup()?
+    AsyncSqliteSaver requires its tables to exist before the first get/put.
+    Without calling setup() the first checkpoint write blocks waiting on a
+    table that was never created.
+    """
+    conn = await aiosqlite.connect("F:/naveen/AGI_Start/data/navix_state.db")
+    checkpointer = AsyncSqliteSaver(conn)
+    await checkpointer.setup()   # create checkpoint tables if they don't exist
+    graph = build_graph()
+    return graph.compile(checkpointer=checkpointer)

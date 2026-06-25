@@ -5,12 +5,109 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NAVIX — Advanced HUD Interface</title>
-  <link rel="stylesheet" href="style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap"
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/center.css" />
+  <link rel="stylesheet" href="css/overlays.css" />
+  <link rel="stylesheet" href="css/news.css" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Russo+One&display=swap"
     rel="stylesheet" />
+  <meta name="description" content="NAVIX AGI Interface – Secure HUD with PIN authentication" />
 </head>
 
 <body>
+
+  <!-- ══════════════════════════════════════════
+       MODE SELECTION OVERLAY  (shown first)
+  ══════════════════════════════════════════ -->
+  <div id="modeOverlay" class="mode-overlay">
+    <div class="pin-grid-bg"></div>
+    <div class="mode-scan-line"></div>
+    <div class="mode-container">
+      <div class="mode-logo">
+        <div class="pin-logo-rings" style="width:140px;height:140px">
+          <div class="pin-ring r1" style="width:140px;height:140px"></div>
+          <div class="pin-ring r2" style="width:102px;height:102px"></div>
+          <div class="pin-ring r3" style="width:68px;height:68px"></div>
+          <div class="pin-orb" style="width:26px;height:26px"></div>
+        </div>
+        <div class="mode-title">N A V I X</div>
+        <div class="mode-subtitle">AGI INTERFACE v3.0 — SELECT OPERATION MODE</div>
+      </div>
+      <div class="mode-cards">
+        <div class="mode-card mode-card-offline" id="modeOffline">
+          <div class="mode-card-icon">◉</div>
+          <div class="mode-card-name">OFFLINE</div>
+          <div class="mode-card-desc">Local AI processing<br>Cached news feeds<br>Zero network dependency</div>
+          <div class="mode-card-tag cyan-text">STANDALONE MODE</div>
+        </div>
+        <div class="mode-card mode-card-online" id="modeOnline">
+          <div class="mode-card-icon amber-text">◎</div>
+          <div class="mode-card-name amber-text">ONLINE</div>
+          <div class="mode-card-desc">Live AI news feeds<br>Real-time data sync<br>Cloud intelligence</div>
+          <div class="mode-card-tag amber-text blink-slow">● CONNECTED MODE</div>
+        </div>
+      </div>
+      <div class="mode-footer">CLICK A MODE TO PROCEED — KEYBOARD: <span class="cyan-text">O</span> = OFFLINE
+        &nbsp;|&nbsp; <span class="amber-text">N</span> = ONLINE</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PIN LOCK SCREEN OVERLAY
+  ══════════════════════════════════════════ -->
+  <div id="pinOverlay" class="pin-overlay" style="opacity:0;pointer-events:none">
+    <!-- Background grid -->
+    <div class="pin-grid-bg"></div>
+
+    <div class="pin-container">
+      <!-- Logo / title -->
+      <div class="pin-logo">
+        <div class="pin-logo-rings">
+          <div class="pin-ring r1"></div>
+          <div class="pin-ring r2"></div>
+          <div class="pin-ring r3"></div>
+          <div class="pin-orb"></div>
+        </div>
+        <div class="pin-title">N A V I X</div>
+        <div class="pin-subtitle" id="pinSubtitle">AGI INTERFACE v3.0 — SECURE ACCESS</div>
+      </div>
+
+      <!-- PIN dots -->
+      <div class="pin-dots" id="pinDots">
+        <span class="pin-dot" id="pd0"></span>
+        <span class="pin-dot" id="pd1"></span>
+        <span class="pin-dot" id="pd2"></span>
+        <span class="pin-dot" id="pd3"></span>
+      </div>
+
+      <!-- Status message -->
+      <div class="pin-status" id="pinStatus">ENTER YOUR PIN TO ACTIVATE</div>
+
+      <!-- Numpad -->
+      <div class="pin-numpad" id="pinNumpad">
+        <button class="pin-key" data-val="1" id="pk1">1</button>
+        <button class="pin-key" data-val="2" id="pk2">2</button>
+        <button class="pin-key" data-val="3" id="pk3">3</button>
+        <button class="pin-key" data-val="4" id="pk4">4</button>
+        <button class="pin-key" data-val="5" id="pk5">5</button>
+        <button class="pin-key" data-val="6" id="pk6">6</button>
+        <button class="pin-key" data-val="7" id="pk7">7</button>
+        <button class="pin-key" data-val="8" id="pk8">8</button>
+        <button class="pin-key" data-val="9" id="pk9">9</button>
+        <button class="pin-key pin-key-clear" id="pkClear">CLR</button>
+        <button class="pin-key" data-val="0" id="pk0">0</button>
+        <button class="pin-key pin-key-enter" id="pkEnter">↵</button>
+      </div>
+
+      <!-- Set / Change PIN link -->
+      <div class="pin-footer">
+        <span class="pin-link" id="setPinLink">⚙ SET / CHANGE PIN</span>
+      </div>
+    </div>
+  </div>
 
   <!-- Scanline overlay -->
   <div class="scanlines"></div>
@@ -69,8 +166,12 @@
       <div class="data-row blink-fast"><span class="dot red"></span> THREAT SCAN: CLEAR</div>
       <div class="data-row"><span class="dot cyan"></span> VOICE: ACTIVE</div>
       <div class="data-row blink-med"><span class="dot amber"></span> UPLINK: SYNCING</div>
-      <div class="data-row"><span class="dot green"></span> AI ENGINE: ONLINE</div>
+      <div class="data-row" id="aiEngineRow"><span class="dot green"></span> AI ENGINE: ONLINE</div>
     </div>
+
+    <div class="divider"></div>
+    <div class="panel-header">◈ AI INTEL FEED <span id="newsBadgeLeft" class="news-badge">OFFLINE</span></div>
+    <div class="news-ticker-left" id="newsTickerLeft"></div>
   </aside>
 
   <!-- CENTER HUD -->
@@ -79,16 +180,49 @@
     <div class="ring-container">
       <canvas id="ringCanvas" width="520" height="520"></canvas>
 
-      <!-- Center orb -->
+      <!-- Female AI Robot in center instead of plain orb -->
       <div class="orb-wrap">
         <div class="orb-outer"></div>
         <div class="orb-mid"></div>
-        <div class="orb-inner"></div>
-        <div class="orb-dot"></div>
+        <div class="robot-frame">
+          <img id="navixRobot" src="navix_robot.png" alt="NAVIX AI" class="robot-img" />
+          <div class="robot-scan"></div>
+        </div>
       </div>
 
-      <!-- Status label below orb -->
+      <!-- Status label below robot -->
       <div class="orb-status" id="orbStatus">◈ ONLINE</div>
+    </div>
+
+    <!-- ── Q&A CONVERSATION PANEL ── -->
+    <div class="qa-panel" id="qaPanel">
+      <div class="qa-header">
+        <span class="qa-icon">◈</span>
+        <span class="qa-title">NAVIX RESPONSE</span>
+        <span class="qa-badge" id="qaBadge">READY</span>
+      </div>
+
+      <!-- Last question -->
+      <div class="qa-question" id="qaQuestion">
+        <span class="qa-label">YOU ASKED</span>
+        <span class="qa-text" id="qaQuestionText">Waiting for voice input…</span>
+      </div>
+
+      <!-- NAVIX answer -->
+      <div class="qa-answer" id="qaAnswer">
+        <span class="qa-label cyan-text">NAVIX</span>
+        <span class="qa-text cyan-text" id="qaAnswerText">Say "Naveen" to activate the assistant.</span>
+      </div>
+
+      <!-- Recommendations -->
+      <div class="qa-recs" id="qaRecs">
+        <div class="qa-rec-label">◈ RECOMMENDATIONS</div>
+        <div class="qa-rec-list" id="qaRecList">
+          <span class="qa-rec-item">Try: "What's the weather today?"</span>
+          <span class="qa-rec-item">Try: "Summarize my notes"</span>
+          <span class="qa-rec-item">Try: "Open Chrome and search for AI news"</span>
+        </div>
+      </div>
     </div>
 
     <!-- Bottom data strip -->
@@ -102,6 +236,7 @@
       <div class="strip-item"><span class="amber-text">SESSION</span><br /><span id="session-val">00:00:00</span></div>
     </div>
   </main>
+
 
   <!-- RIGHT PANEL -->
   <aside class="panel panel-right">
@@ -129,13 +264,17 @@
     <div class="divider"></div>
 
     <div class="panel-header">◈ RECENT EVENTS</div>
-    <div class="log-feed" id="logFeed">
+    <div class="log-feed" id="logFeed" style="max-height:72px">
       <div class="log-entry"><span class="log-time">19:43:01</span> Voice input detected</div>
       <div class="log-entry"><span class="log-time">19:43:04</span> Graph traversal: OK</div>
       <div class="log-entry"><span class="log-time">19:43:08</span> Memory write: 3 nodes</div>
       <div class="log-entry"><span class="log-time">19:43:15</span> Response generated</div>
       <div class="log-entry"><span class="log-time">19:43:22</span> Persona: NAVIX active</div>
     </div>
+
+    <div class="divider"></div>
+    <div class="panel-header">◈ AI NEWS <span id="newsBadgeRight" class="news-badge">OFFLINE</span></div>
+    <div class="news-feed-right" id="newsTickerRight"></div>
 
     <div class="divider"></div>
 
@@ -164,6 +303,10 @@
     </div>
   </header>
 
+  <script src="mode.js"></script>
+  <script src="pin.js"></script>
+  <script src="news.js"></script>
+  <script src="qa.js"></script>
   <script src="hud.js"></script>
 </body>
 

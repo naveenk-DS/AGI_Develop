@@ -1,22 +1,25 @@
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 
-_llm_instance = None
-_llm_model_name = None
-
 def get_llm(model: str = "qwen2.5:7b", temperature: float = 0.7):
-    global _llm_instance, _llm_model_name
-    if _llm_instance is None or _llm_model_name != model:
-        _llm_instance = ChatOllama(
-            model=model,
-            temperature=temperature,
-            base_url="http://127.0.0.1:11434",
-            num_gpu=1,
-            num_thread=8,
-            num_ctx=4096,
-            repeat_penalty=1.1
-        )
-        _llm_model_name = model
-    return _llm_instance
+    """
+    Return a ChatOllama instance.
+
+    WHY not cached?
+    ChatOllama (via langchain-ollama / httpx) binds its async connection pool
+    to the event loop that first triggers an async call. On Windows,
+    asyncio.run() creates a new loop each time, so a cached instance becomes
+    stale and causes ainvoke() to hang indefinitely on the old loop's pool.
+    Construction cost is negligible; the real I/O cost is the Ollama HTTP call.
+    """
+    return ChatOllama(
+        model=model,
+        temperature=temperature,
+        base_url="http://127.0.0.1:11434",
+        num_gpu=1,
+        num_thread=8,
+        num_ctx=4096,
+        repeat_penalty=1.1
+    )
 
 def get_embeddings():
     return OllamaEmbeddings(

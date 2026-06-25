@@ -46,52 +46,99 @@ VOICE_DATA_DIR.mkdir(parents=True, exist_ok=True)
 # ── Microphone selection (soundcard / WASAPI) ─────────────────────────────────
 _mic = None
 
+_SKIP_LOOPBACK = ['stereo mix', 'loopback', 'what u hear']
+_MIC_TEST_TIMEOUT = 2.0   # seconds — skip any mic that hangs longer than this
+
+
+def _test_mic_with_timeout(m, timeout: float = _MIC_TEST_TIMEOUT) -> bool:
+    """
+    Test a mic in a daemon thread with a hard timeout.
+    Disconnected Bluetooth devices hang indefinitely — this prevents that.
+    Returns True if the mic opens AND produces non-zero RMS within `timeout` s.
+    """
+    import threading
+    result = [False]
+
+    def _probe():
+        test_frames = int(0.5 * SAMPLE_RATE)
+        try:
+            with m.recorder(samplerate=SAMPLE_RATE, channels=1,
+                            blocksize=test_frames) as rec:
+                data = rec.record(numframes=test_frames)
+                rms = float(np.sqrt(np.mean(data ** 2)))
+                logger.info(f"  [{m.name}] RMS={rms:.6f}")
+                result[0] = rms > 0.0
+        except Exception as e:
+            logger.debug(f"  [{m.name}] open failed: {e}")
+
+    t = threading.Thread(target=_probe, daemon=True)
+    t.start()
+    t.join(timeout=timeout)
+
+    if t.is_alive():
+        logger.debug(f"  [{m.name}] timed out after {timeout}s — skipping")
+        return False
+
+    return result[0]
+
+
 def _get_mic():
-    """Pick and cache the best available microphone using soundcard (WASAPI)."""
+    """
+    Pick and cache the first microphone that actually produces audio.
+    Each mic is tested with a hard 2s timeout so disconnected Bluetooth
+    devices never freeze startup. Works with any mic type.
+    """
     global _mic
     if _mic is not None:
         return _mic
 
     import soundcard as sc
+    all_mics = sc.all_microphones(include_loopback=False)
 
-    # Try default first
-    try:
-        m = sc.default_microphone()
-        _mic = m
-        logger.info(f"Mic (default): {m.name}")
-        return _mic
-    except Exception:
-        pass
-
-    # Scan all mics, pick the first real one
-    skip_words = ['stereo mix', 'loopback', 'what u hear', 'nvidia', 'realtek digital']
-    for m in sc.all_microphones(include_loopback=False):
-        name = m.name.lower()
-        if any(w in name for w in skip_words):
+    # Pass 1 — find first mic that produces non-zero audio within timeout
+    for m in all_mics:
+        if any(w in m.name.lower() for w in _SKIP_LOOPBACK):
             continue
-        try:
-            # Quick test-open
-            with m.recorder(samplerate=SAMPLE_RATE, channels=1, blocksize=4800):
-                pass
+        if _test_mic_with_timeout(m):
             _mic = m
-            logger.info(f"Mic (auto): {m.name}")
+            logger.info(f"Mic selected: {m.name}")
             return _mic
-        except Exception as e:
-            logger.debug(f"Mic skip [{m.name}]: {e}")
 
-    # Last resort — any mic that opens
-    for m in sc.all_microphones(include_loopback=False):
-        try:
-            with m.recorder(samplerate=SAMPLE_RATE, channels=1, blocksize=4800):
-                pass
+    # Pass 2 — room may be silent; accept any mic that opens within timeout
+    logger.warning("All mics returned RMS=0 — room silent? Accepting first mic that opens.")
+    for m in all_mics:
+        if any(w in m.name.lower() for w in _SKIP_LOOPBACK):
+            continue
+
+        def _try_open(mic=m):
+            try:
+                with mic.recorder(samplerate=SAMPLE_RATE, channels=1, blocksize=4800):
+                    pass
+                return True
+            except Exception:
+                return False
+
+        import threading
+        ok = [False]
+        def _run(mic=m):
+            ok[0] = _try_open(mic)
+        t = threading.Thread(target=_run, daemon=True)
+        t.start()
+        t.join(timeout=_MIC_TEST_TIMEOUT)
+        if not t.is_alive() and ok[0]:
             _mic = m
-            logger.info(f"Mic (fallback): {m.name}")
+            logger.info(f"Mic selected (silent-room fallback): {m.name}")
             return _mic
-        except Exception:
-            pass
 
-    logger.error("No working microphone found! Plug in your USB mic or set a default recording device in Windows Sound Settings.")
+    logger.error("No working microphone found!")
     return None
+
+
+def reset_mic():
+    """Force mic re-detection on next listen (useful after hot-swap)."""
+    global _mic
+    _mic = None
+    logger.info("Mic cache cleared — will re-detect on next listen.")
 
 
 # ── Whisper model ─────────────────────────────────────────────────────────────
@@ -132,7 +179,7 @@ def save_voice_sample(audio: np.ndarray, transcription: str):
 def record_until_silence(
     min_duration: float  = 1.0,
     max_duration: float  = 30.0,
-    silence_threshold: float = 0.006,
+    silence_threshold: float = 0.005,   # above typical background noise (~0.002-0.004)
     silence_duration: float  = 1.5,
 ) -> np.ndarray:
     """
@@ -141,6 +188,7 @@ def record_until_silence(
     """
     mic = _get_mic()
     if mic is None:
+        logger.error("record_until_silence: no mic available!")
         return np.array([], dtype=np.float32)
 
     chunk_dur            = 0.3            # seconds per chunk
@@ -148,16 +196,17 @@ def record_until_silence(
     max_chunks           = int(max_duration / chunk_dur)
     min_chunks           = int(min_duration / chunk_dur)
     silence_chunks_needed = int(silence_duration / chunk_dur)
-    max_silent_before_speech = int(8 / chunk_dur)
+    max_silent_before_speech = int(20 / chunk_dur)  # wait up to 20s for speech to start
 
     all_audio        = []
     silent_chunks    = 0
     speaking_started = False
     total_chunks     = 0
+    _log_every       = int(3 / chunk_dur)
 
     try:
         with mic.recorder(samplerate=SAMPLE_RATE, channels=1, blocksize=chunk_size) as rec:
-            logger.debug("Mic open — listening...")
+            logger.debug(f"Mic open — listening... (threshold={silence_threshold})")
             while total_chunks < max_chunks:
                 chunk = rec.record(numframes=chunk_size)          # shape (N, 1)
                 audio_chunk = chunk[:, 0].astype(np.float32)      # flatten to 1-D
@@ -166,15 +215,20 @@ def record_until_silence(
                 total_chunks += 1
                 energy = float(np.sqrt(np.mean(audio_chunk ** 2)))
 
+                if total_chunks % _log_every == 0:
+                    logger.debug(f"[mic] energy={energy:.5f} threshold={silence_threshold} speaking={speaking_started}")
+
                 if energy > silence_threshold:
                     speaking_started = True
                     silent_chunks    = 0
                 elif speaking_started:
                     silent_chunks += 1
                     if silent_chunks >= silence_chunks_needed and total_chunks >= min_chunks:
+                        logger.debug("Silence detected — stopping recording")
                         break
                 else:
                     if total_chunks > max_silent_before_speech:
+                        logger.debug(f"No speech detected after {total_chunks} chunks — giving up")
                         return np.array([], dtype=np.float32)
 
     except Exception as e:
@@ -182,6 +236,7 @@ def record_until_silence(
         return np.array([], dtype=np.float32)
 
     if not speaking_started or not all_audio:
+        logger.debug("record_until_silence: no speech detected")
         return np.array([], dtype=np.float32)
 
     audio   = np.concatenate(all_audio)
@@ -239,9 +294,9 @@ def listen_once(duration: int = 30, language: str = None) -> str:
     set_handling()
     try:
         audio = record_until_silence(
-            min_duration=1,
+            min_duration=0.5,    # reduced: capture short commands faster
             max_duration=duration,
-            silence_duration=2.5,
+            silence_duration=0.8,  # reduced from 2.5s → respond right after you stop talking
         )
     finally:
         clear_handling()

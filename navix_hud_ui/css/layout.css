@@ -1,0 +1,395 @@
+/* ═══════════════════════════════════════════════
+   layout.css — NAVIX Grid & Panel Structure
+   Body grid · Top bar · Side panels · Bottom bar
+   ~250 lines
+═══════════════════════════════════════════════ */
+
+/* ── BODY GRID ── */
+body {
+  display: grid;
+  grid-template-columns: 220px 1fr 220px;
+  grid-template-rows: 56px 1fr;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── SCANLINES overlay ── */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom,
+      transparent 0px, transparent 3px,
+      rgba(0, 0, 0, 0.15) 3px, rgba(0, 0, 0, 0.15) 4px);
+}
+
+/* ── VIGNETTE ── */
+.vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 998;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.7) 100%);
+}
+
+/* ── CORNER brackets ── */
+.corner {
+  position: fixed;
+  z-index: 10;
+  width: 40px;
+  height: 40px;
+  pointer-events: none;
+}
+
+.corner::before,
+.corner::after {
+  content: '';
+  position: absolute;
+  background: var(--cyan);
+  box-shadow: var(--glow-c);
+}
+
+.corner::before {
+  width: 100%;
+  height: 2px;
+  top: 0;
+  left: 0;
+}
+
+.corner::after {
+  width: 2px;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+.top-left {
+  top: 12px;
+  left: 12px;
+}
+
+.top-right {
+  top: 12px;
+  right: 12px;
+  transform: scaleX(-1);
+}
+
+.bot-left {
+  bottom: 12px;
+  left: 12px;
+  transform: scaleY(-1);
+}
+
+.bot-right {
+  bottom: 12px;
+  right: 12px;
+  transform: scale(-1, -1);
+}
+
+/* ── TOP BAR ── */
+.top-bar {
+  grid-row: 1;
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: rgba(0, 153, 255, 0.03);
+  border-bottom: 1px solid var(--border);
+  z-index: 50;
+}
+
+.title-text {
+  font-family: var(--font-hud);
+  font-size: 1.1rem;
+  font-weight: 900;
+  letter-spacing: 0.4em;
+  color: var(--cyan);
+  text-shadow: var(--glow-c);
+}
+
+.sub-text {
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  color: rgba(0, 153, 255, 0.5);
+  margin-left: 12px;
+}
+
+.clock-text {
+  font-family: var(--font-hud);
+  font-size: 1rem;
+  letter-spacing: 0.15em;
+  color: var(--cyan);
+  text-shadow: var(--glow-c);
+  margin: 0 14px;
+}
+
+.top-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.top-right-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.top-left-info {
+  display: flex;
+  align-items: center;
+}
+
+.top-bar-nav {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.top-nav-item {
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  color: rgba(0, 153, 255, 0.5);
+  cursor: pointer;
+  transition: color var(--ease);
+}
+
+.top-nav-item:hover,
+.top-nav-item.active {
+  color: var(--cyan);
+  text-shadow: var(--glow-c);
+}
+
+.status-badge {
+  font-size: 0.5rem;
+  letter-spacing: 0.18em;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: rgba(0, 255, 136, 0.1);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  color: var(--green);
+  text-shadow: var(--glow-g);
+}
+
+/* ── SIDE PANELS ── */
+.panel {
+  grid-row: 2;
+  min-height: 0;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  padding: 18px 14px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 153, 255, 0.2) transparent;
+}
+
+.panel::-webkit-scrollbar {
+  width: 3px;
+}
+
+.panel::-webkit-scrollbar-thumb {
+  background: rgba(0, 153, 255, 0.2);
+  border-radius: 2px;
+}
+
+.panel-left {
+  grid-column: 1;
+}
+
+.panel-right {
+  grid-column: 3;
+  border-right: none;
+  border-left: 1px solid var(--border);
+}
+
+.panel-header {
+  font-family: var(--font-hud);
+  font-size: 0.6rem;
+  letter-spacing: 0.25em;
+  color: var(--amber);
+  text-shadow: var(--glow-a);
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+/* ── STAT BARS ── */
+.stat-block {
+  margin-bottom: 12px;
+}
+
+.stat-block .label {
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  color: rgba(0, 153, 255, 0.6);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.bar-wrap {
+  width: 100%;
+  height: 4px;
+  background: rgba(0, 153, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 3px;
+}
+
+.bar {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--cyan);
+  box-shadow: var(--glow-c);
+  transition: width 1s ease;
+}
+
+.bar.amber {
+  background: var(--amber);
+  box-shadow: var(--glow-a);
+}
+
+.bar.cyan {
+  background: var(--cyan);
+  box-shadow: var(--glow-c);
+}
+
+.bar.green {
+  background: var(--green);
+  box-shadow: var(--glow-g);
+}
+
+.stat-block .value {
+  font-size: 0.6rem;
+  color: var(--cyan);
+  float: right;
+  margin-top: -14px;
+}
+
+/* ── WAVEFORM CANVAS ── */
+#waveCanvas {
+  display: block;
+  width: 100%;
+  height: 60px;
+  margin: 8px 0;
+  border: 1px solid var(--border);
+  background: rgba(0, 153, 255, 0.02);
+}
+
+/* ── DATA LIST ── */
+.data-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.data-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  color: rgba(0, 153, 255, 0.8);
+}
+
+/* ── RIGHT PANEL METRICS ── */
+.metric-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.metric {
+  text-align: center;
+}
+
+.metric-val {
+  font-family: var(--font-hud);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cyan);
+  text-shadow: var(--glow-c);
+}
+
+.metric-lbl {
+  font-size: 0.42rem;
+  letter-spacing: 0.18em;
+  color: rgba(0, 153, 255, 0.5);
+  margin-top: 2px;
+}
+
+/* ── ALERT FEED ── */
+.alert-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.alert-item {
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  padding: 5px 8px;
+  border-radius: 3px;
+  background: rgba(0, 153, 255, 0.04);
+  border-left: 2px solid var(--cyan);
+  line-height: 1.5;
+}
+
+.alert-item.amber {
+  border-left-color: var(--amber);
+}
+
+.alert-item.red {
+  border-left-color: var(--red);
+}
+
+/* ── RECENT EVENTS LOG ── */
+.log-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: hidden;
+}
+
+.log-entry {
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  color: rgba(0, 153, 255, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.log-time {
+  color: var(--amber);
+  margin-right: 6px;
+  opacity: 0.8;
+}
+
+/* ── LOCATION BOX ── */
+.location-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background: rgba(0, 153, 255, 0.02);
+  border: 1px solid rgba(0, 153, 255, 0.1);
+  border-radius: 4px;
+}
+
+.loc-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+}
+
+.loc-row .label {
+  color: rgba(0, 153, 255, 0.5);
+}

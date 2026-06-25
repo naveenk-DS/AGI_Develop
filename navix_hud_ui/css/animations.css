@@ -1,0 +1,235 @@
+/* ═══════════════════════════════════════════════
+   animations.css — NAVIX Keyframes & Blink Utils
+   ~130 lines
+═══════════════════════════════════════════════ */
+
+/* ── ORB PULSE ── */
+@keyframes orbPulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+/* ── ROBOT GLOW (box-shadow only, no transform) ── */
+@keyframes robotGlow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px var(--cyan), 0 0 40px rgba(0, 153, 255, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 40px var(--cyan), 0 0 80px rgba(0, 153, 255, 0.4);
+  }
+}
+
+/* ── ROBOT SCAN LINE ── */
+@keyframes robotScan {
+  0% {
+    transform: translateY(-110%);
+  }
+
+  100% {
+    transform: translateY(110%);
+  }
+}
+
+/* ── SCANLINES PAN ── */
+@keyframes scanPan {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 0 100%;
+  }
+}
+
+/* ── BLINK variants ── */
+@keyframes blinkFast {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes blinkMed {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.2;
+  }
+}
+
+@keyframes blinkSlow {
+
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.blink-fast {
+  animation: blinkFast 0.5s step-end infinite;
+}
+
+.blink-med {
+  animation: blinkMed 1.2s ease-in-out infinite;
+}
+
+.blink-slow {
+  animation: blinkSlow 2.4s ease-in-out infinite;
+}
+
+/* ── FADE IN ── */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease forwards;
+}
+
+/* ── GLOW PULSE (for news cards, alerts) ── */
+@keyframes glowPulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 4px rgba(0, 153, 255, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 12px rgba(0, 153, 255, 0.5);
+  }
+}
+
+/* ── NEWS TICKER SCROLL ── */
+@keyframes tickerScroll {
+  0% {
+    transform: translateY(0);
+  }
+
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+/* ── MODE SCAN LINE ── */
+@keyframes scanMove {
+  0% {
+    top: -2px;
+  }
+
+  100% {
+    top: 100%;
+  }
+}
+
+/* ── PIN SHAKE ── */
+@keyframes pinShake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20% {
+    transform: translateX(-8px);
+  }
+
+  40% {
+    transform: translateX(8px);
+  }
+
+  60% {
+    transform: translateX(-6px);
+  }
+
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+/* ── PIN RING SPIN ── */
+@keyframes spinRing1 {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spinRing2 {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes spinRing3 {
+  from {
+    transform: rotate(45deg);
+  }
+
+  to {
+    transform: rotate(405deg);
+  }
+}
+
+/* ── ORB GLOW ── */
+@keyframes orbGlow {
+  from {
+    box-shadow: 0 0 10px rgba(0, 153, 255, 0.4);
+  }
+
+  to {
+    box-shadow: 0 0 30px rgba(0, 153, 255, 0.9);
+  }
+}
+
+/* ── NEWS CARD APPEAR ── */
+@keyframes cardAppear {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

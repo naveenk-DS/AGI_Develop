@@ -1,6 +1,7 @@
 """
 NAVIX_AI.py – Core voice conversation engine.
 """
+from app.services import continual_learning
 import asyncio
 import re
 import threading
@@ -31,9 +32,9 @@ async def ask_model(prompt: str, context: str = "", fallback: str = "") -> str:
     """
     full_prompt = f"{context}\n\n{prompt}".strip() if context else prompt
 
-    for attempt in range(2):   # try twice
+    for attempt in range(2):
         try:
-            async with httpx.AsyncClient(timeout=60) as client:   # 60s — qwen2.5:7b can be slow
+            async with httpx.AsyncClient(timeout=120) as client:   # 120s — model may need cold-start time
                 r = await client.post(
                     OLLAMA_URL,
                     json={
@@ -58,12 +59,33 @@ async def ask_model(prompt: str, context: str = "", fallback: str = "") -> str:
                     if text:
                         logger.debug(f"[model] → {text!r}")
                         return text
+                else:
+                    logger.error(f"Ollama HTTP {r.status_code} (attempt {attempt+1}): {r.text[:200]}")
         except Exception as e:
-            logger.error(f"Ollama error (attempt {attempt+1}): {e}")
+            logger.error(f"Ollama error (attempt {attempt+1}) [{type(e).__name__}]: {e}")
             if attempt == 0:
-                await asyncio.sleep(1)   # brief pause before retry
+                await asyncio.sleep(2)
 
     return fallback
+
+
+async def warmup_model():
+    """Send a tiny ping to Ollama so the model is loaded before the first user question."""
+    try:
+        async with httpx.AsyncClient(timeout=120) as client:
+            logger.info(f"Warming up {NAVIX_MODEL}...")
+            r = await client.post(OLLAMA_URL, json={
+                "model": NAVIX_MODEL,
+                "prompt": "hi",
+                "stream": False,
+                "options": {"num_predict": 1},
+            })
+            if r.status_code == 200:
+                logger.info(f"{NAVIX_MODEL} warm and ready")
+            else:
+                logger.warning(f"Warmup got HTTP {r.status_code}")
+    except Exception as e:
+        logger.warning(f"Warmup failed [{type(e).__name__}]: {e}")
 
 
 def get_period() -> str:
@@ -79,15 +101,17 @@ async def navix_session():
     from app.services.reminder import start_reminder_loop
     from app.services.voice.pin_auth import authenticate, is_authenticated
     from navix_tray import set_tray_state
-    from app.services.voice.wake_word import set_handling, clear_handling
 
+    loop = asyncio.get_event_loop()
     set_tray_state("sleeping")
 
+    # Warm up Ollama in background so model is loaded before first question
+    asyncio.create_task(warmup_model())
     # ── Ask PIN on startup ───────────────────────────────────────────────────
-    speak("NAVIX starting. Please enter your PIN.")
-    success = authenticate()
+    await loop.run_in_executor(None, speak, "NAVIX starting. Please enter your PIN.")
+    success = await loop.run_in_executor(None, authenticate)
     if not success:
-        speak("Wrong PIN. Shutting down.")
+        await loop.run_in_executor(None, speak, "Wrong PIN. Shutting down.")
         return
 
     hour   = datetime.now().hour
@@ -106,12 +130,10 @@ async def navix_session():
             )
         if intro:
             set_tray_state("talking")
-            speak(intro)
+            await loop.run_in_executor(None, speak, intro)
 
-        set_handling()
         set_tray_state("active")
-        spoken_plan = listen_once(duration=20)
-        clear_handling()
+        spoken_plan = await loop.run_in_executor(None, listen_once, 20)
 
         if spoken_plan and spoken_plan.strip():
             await save_daily_plan(spoken_plan.strip())
@@ -120,7 +142,7 @@ async def navix_session():
             )
             if confirm:
                 set_tray_state("talking")
-                speak(confirm)
+                await loop.run_in_executor(None, speak, confirm)
 
         if 6 <= hour <= 9:
             try:
@@ -132,7 +154,7 @@ async def navix_session():
                     )
                     if brief:
                         set_tray_state("talking")
-                        speak(brief)
+                        await loop.run_in_executor(None, speak, brief)
             except Exception as e:
                 logger.warning(f"Briefing error: {e}")
 
@@ -145,12 +167,10 @@ async def navix_session():
         )
         if closing:
             set_tray_state("talking")
-            speak(closing)
+            await loop.run_in_executor(None, speak, closing)
 
-        set_handling()
         set_tray_state("active")
-        reflection = listen_once(duration=20)
-        clear_handling()
+        reflection = await loop.run_in_executor(None, listen_once, 20)
 
         if reflection and reflection.strip():
             from app.services.planner import save_completed
@@ -160,18 +180,18 @@ async def navix_session():
             )
             if night_reply:
                 set_tray_state("talking")
-                speak(night_reply)
+                await loop.run_in_executor(None, speak, night_reply)
 
     else:
         greeting = await ask_model(f"Greet Naveen naturally for {period}. 1 sentence.")
         if greeting:
             set_tray_state("talking")
-            speak(greeting)
+            await loop.run_in_executor(None, speak, greeting)
 
     # ── Start conversation immediately after startup ──────────────────────────
     # No wake word needed — go straight into conversation
     asyncio.create_task(start_reminder_loop())
-    
+
     # Jump directly into conversation loop
     await handle_wake_word("")
 
@@ -185,20 +205,19 @@ def on_wake_word(text: str):
         logger.debug("Wake word heard, conversation already active.")
         return
     _conversation_active = True
-    t = threading.Thread(target=_run_conversation, daemon=True)
-    t.start()
 
+    from navix_start import get_main_loop
+    loop = get_main_loop()
 
-def _run_conversation():
-    global _conversation_active
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        loop.run_until_complete(handle_wake_word(""))
-    finally:
-        loop.close()
+    future = asyncio.run_coroutine_threadsafe(handle_wake_word(text), loop)
+    def _on_done(f):
+        global _conversation_active
         _conversation_active = False
-
+        try:
+            f.result()
+        except Exception as e:
+            logger.error(f"Conversation error: {e}")
+    future.add_done_callback(_on_done)
 
 def start_navix():
     logger.info("Starting NAVIX...")
@@ -212,20 +231,17 @@ async def handle_wake_word(text: str):
     from app.services.voice.wake_word import set_handling, clear_handling
     from navix_tray import set_tray_state
 
-    # ── Stop wake word mic conflict ──────────────────────────────────────────
-    set_handling()
-    await asyncio.sleep(0.3)
+    loop = asyncio.get_event_loop()
 
     set_tray_state("listening")
 
     # ── PIN check ────────────────────────────────────────────────────────────
     if not is_authenticated():
-        speak("Please enter your PIN")
+        await loop.run_in_executor(None, speak, "Please enter your PIN")
         success = authenticate()
         if not success:
-            speak("Wrong PIN. Locked.")
+            await loop.run_in_executor(None, speak, "Wrong PIN. Locked.")
             set_tray_state("sleeping")
-            clear_handling()
             return
 
     # ── Activation greeting ──────────────────────────────────────────────────
@@ -234,18 +250,22 @@ async def handle_wake_word(text: str):
         fallback="Yes Naveen?"
     )
     set_tray_state("talking")
-    speak(activation)
+    await loop.run_in_executor(None, speak, activation)
 
     # ── Continuous conversation loop ─────────────────────────────────────────
     while True:
         set_tray_state("active")
-        command = listen_once(duration=30)
+        from app.routers.hud import push_hud
+        push_hud(state="listening")
+        # Run blocking listen_once() in executor so event loop stays responsive
+        command = await loop.run_in_executor(None, listen_once, 30)
 
         if not command or not command.strip():
             continue
 
         command_lower = command.lower().strip()
         logger.info(f"Command: {command}")
+        push_hud(question=command, state="thinking")
 
         # ── Only exit on stop/bye ────────────────────────────────────────────
         if any(w in command_lower for w in [
@@ -257,9 +277,8 @@ async def handle_wake_word(text: str):
                 "Naveen said bye. Short warm goodbye. 1 sentence."
             )
             set_tray_state("talking")
-            speak(farewell or "Okay Naveen, talk later!")
+            await loop.run_in_executor(None, speak, farewell or "Okay Naveen, talk later!")
             set_tray_state("sleeping")
-            clear_handling()
             break
 
         # ── Lock ─────────────────────────────────────────────────────────────
@@ -268,9 +287,10 @@ async def handle_wake_word(text: str):
             lock()
             lock_msg = await ask_model("You are locked. Confirm briefly. 1 sentence.")
             set_tray_state("talking")
-            speak(lock_msg or "Locked.")
+            push_hud(answer=lock_msg or "Locked.", state="speaking")
+            await loop.run_in_executor(None, speak, lock_msg or "Locked.")
             set_tray_state("sleeping")
-            clear_handling()
+            push_hud(state="ready")
             break
 
         # ── Reminder ─────────────────────────────────────────────────────────
@@ -291,7 +311,7 @@ async def handle_wake_word(text: str):
                 f"Reminder set for '{message}' at {hour}:{minute:02d}. Confirm naturally. 1 sentence."
             )
             set_tray_state("talking")
-            speak(confirm)
+            await loop.run_in_executor(None, speak, confirm)
             continue
 
         # ── Intent-based routing ──────────────────────────────────────────────
@@ -308,7 +328,8 @@ async def handle_wake_word(text: str):
                 fallback="Done!"
             )
             set_tray_state("talking")
-            speak(response)
+            push_hud(answer=response, state="speaking")
+            await loop.run_in_executor(None, speak, response)
             set_tray_state("active")
             continue
 
@@ -320,14 +341,8 @@ async def handle_wake_word(text: str):
                 fallback="Done!"
             )
             set_tray_state("talking")
-            speak(response)
-            set_tray_state("active")
-            continue
-
-        elif intent == "rag":
-            set_tray_state("talking")
-            response = await process_command(command)
-            speak(response or "I couldn't find that in your documents.")
+            push_hud(answer=response, state="speaking")
+            await loop.run_in_executor(None, speak, response)
             set_tray_state("active")
             continue
 
@@ -335,7 +350,8 @@ async def handle_wake_word(text: str):
             from app.services.vision import describe_screen
             set_tray_state("talking")
             result = await describe_screen(command)
-            speak(result)
+            push_hud(answer=result, state="speaking")
+            await loop.run_in_executor(None, speak, result)
             set_tray_state("active")
             continue
 
@@ -343,7 +359,40 @@ async def handle_wake_word(text: str):
             set_tray_state("talking")
             from app.services.code_writer import write_code_to_file
             response = await write_code_to_file(command)
-            speak(response)
+            push_hud(answer=response, state="speaking")
+            await loop.run_in_executor(None, speak, response)
+            set_tray_state("active")
+            continue
+
+        
+        elif intent == "rag":
+            set_tray_state("talking")
+            response = None
+            try:
+                from core.rag_chain import get_rag_chain
+                chain = get_rag_chain()
+                result = await loop.run_in_executor(
+                    None, lambda: chain.invoke({"query": command})
+                )
+                response = result if isinstance(result, str) else (
+                    result.get("result", str(result)) if isinstance(result, dict) else str(result)
+                )
+                # If RAG returned a non-answer, treat it as a failure
+                if not response or len(response.strip()) < 5:
+                    response = None
+            except Exception as e:
+                logger.error(f"RAG error (falling back to chat): {e}")
+                response = None
+
+            # Fall back to Ollama chat if RAG failed or returned nothing
+            if response is None:
+                logger.info("RAG fallback → asking chat model")
+                response = await ask_model(
+                    command,
+                    fallback="I didn't quite get that, Naveen. Can you say it again?"
+                )
+            push_hud(answer=response, state="speaking")
+            await loop.run_in_executor(None, speak, response)
             set_tray_state("active")
             continue
 
@@ -353,67 +402,52 @@ async def handle_wake_word(text: str):
                 command,
                 fallback="I didn't quite get that, Naveen. Can you say it again?"
             )
-            speak(response)
+            push_hud(answer=response, state="speaking")
+            await loop.run_in_executor(None, speak, response)
             set_tray_state("active")
             continue
 
-        intent = await classify_intent(command)
-        logger.info(f"Intent: {intent}")
-
-        if intent == "browser":
-            from app.services.command_parser import execute_browser_command
-            result = await execute_browser_command(command)
-            response = await ask_model(f"You just did: {result}. Confirm casually. 1 sentence.", fallback="Done!")
-            speak(response)
-            continue
-
-        elif intent == "pc":
-            from app.services.pc_command_parser import execute_pc_command
-            result = await execute_pc_command(command)
-            response = await ask_model(f"You just did: {result}. Confirm casually. 1 sentence.", fallback="Done!")
-            speak(response)
-            continue
-
-        elif intent == "rag":
-            response = await process_command(command)  # routes through LangGraph → RAG node
-            speak(response)
-            continue
-
-        else:  # chat
-            response = await ask_model(command, fallback="I didn't catch that, can you say it again?")
-            speak(response)
-            continue
 
 
-# ── Graph-based command processing ───────────────────────────────────────────
 
-async def process_command(text: str, thread_id: str = "navix-main") -> str:
+# ── Direct command processing (bypasses LangGraph checkpointer) ──────────────
+# NOTE: The LangGraph graph with AsyncSqliteSaver is NOT used here.
+# Reason: aiosqlite ties its internal I/O thread to the event loop that created
+# the connection. When ainvoke() is called from a different async context
+# (e.g. via run_coroutine_threadsafe from a wake-word callback thread) the
+# connection's internal queue dispatch deadlocks → 90-100 s hang.
+# Fix: call Ollama / RAG chain directly — same net result, no checkpointer.
+
+async def process_command(text: str, thread_id: str = "navix-main", known_intent: str = None) -> str:
+    """
+    Handle rag / chat commands directly — no LangGraph checkpointer involved.
+    This avoids the aiosqlite event-loop mismatch that caused ainvoke() hangs.
+    """
+    import asyncio
     try:
-        from core.graph import get_graph
         from app.services.personal_memory import get_context_for_ai
-        from langchain_core.messages import HumanMessage
-
         personal_context = await get_context_for_ai()
-        graph = await get_graph()
 
-        state = {
-            "messages":         [HumanMessage(content=text)],
-            "user_input":       text,
-            "understood":       "",
-            "plan":             [],
-            "current_step":     0,
-            "tool":             "chat",
-            "tool_result":      "",
-            "verified":         False,
-            "response":         "",
-            "emotion":          "neutral",
-            "personal_context": personal_context,
-        }
+        tool = known_intent or "chat"
 
-        config = {"configurable": {"thread_id": thread_id}}
-        result = await graph.ainvoke(state, config=config)
-        return result["response"]
+        if tool == "rag":
+            from core.rag_chain import get_rag_chain
+            chain = get_rag_chain()
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                None, lambda: chain.invoke({"query": text})
+            )
+            return result if isinstance(result, str) else (
+                result.get("result", str(result)) if isinstance(result, dict) else str(result)
+            )
+        else:
+            # chat — call Ollama directly via ask_model()
+            return await ask_model(
+                text,
+                context=personal_context,
+                fallback="I didn't quite catch that, Naveen."
+            )
 
     except Exception as e:
-        logger.error(f"Graph error: {e}")
-        return "Sorry something went wrong."
+        logger.error(f"process_command error: {e}")
+        return "Sorry, something went wrong."

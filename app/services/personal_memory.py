@@ -5,6 +5,12 @@ from app.db.models import Config
 from app.crypto.encrypt import encrypt, decrypt
 from sqlalchemy import select
 import json
+import time
+
+# ── In-memory context cache (avoids DB hit on every voice command) ─────────────
+_context_cache: str | None = None
+_context_cache_ts: float = 0.0
+_CONTEXT_CACHE_TTL: float = 30.0  # seconds
 
 MEMORY_CUSTOMER_ID = "naveen_personal"
 
@@ -52,6 +58,7 @@ async def load_profile() -> dict:
     return DEFAULT_PROFILE.copy()
 
 async def save_profile(profile: dict):
+    global _context_cache, _context_cache_ts
     try:
         async with AsyncSessionLocal() as db:
             encrypted = encrypt({"value": profile})
@@ -71,6 +78,9 @@ async def save_profile(profile: dict):
                     value=encrypted
                 ))
             await db.commit()
+            # Invalidate cache so next call reads fresh data
+            _context_cache = None
+            _context_cache_ts = 0.0
             logger.info("Profile saved")
     except Exception as e:
         logger.error(f"Profile save error: {e}")
@@ -122,6 +132,13 @@ async def check_birthdays() -> list:
     return birthdays
 
 async def get_context_for_ai() -> str:
+    global _context_cache, _context_cache_ts
+
+    # Return cached value if still fresh
+    if _context_cache is not None and (time.monotonic() - _context_cache_ts) < _CONTEXT_CACHE_TTL:
+        logger.debug("Context from cache")
+        return _context_cache
+
     profile = await load_profile()
     family_str = ", ".join([f"{n} ({r})" for n, r in profile["family"].items()])
     friends_str = ", ".join(profile["friends"])
@@ -141,4 +158,6 @@ Personal information about the user:
 - Hobby: {favs.get('hobby', 'not specified')}
 - Recent memories: {memory_str or 'none yet'}
 """
-    return context.strip()
+    _context_cache = context.strip()
+    _context_cache_ts = time.monotonic()
+    return _context_cache

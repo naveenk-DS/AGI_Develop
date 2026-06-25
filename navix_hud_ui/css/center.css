@@ -1,0 +1,301 @@
+/* ═══════════════════════════════════════════════
+   center.css — NAVIX Center HUD
+   Ring container · Robot image · Orb · Strip
+   ~220 lines
+═══════════════════════════════════════════════ */
+
+/* ── HUD CENTER COLUMN ── */
+.hud-center {
+  grid-row: 2;
+  grid-column: 2;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+.hud-center::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── RING CONTAINER ── */
+.ring-container {
+  position: relative;
+  width: 520px;
+  height: 520px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+#ringCanvas {
+  position: absolute;
+  inset: 0;
+}
+
+/* ── ORB WRAP (holds robot + ring decorations) ── */
+.orb-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── OUTER GLOW RINGS ── */
+.orb-outer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120px;
+  height: 120px;
+  margin-top: -60px;
+  margin-left: -60px;
+  border-radius: 50%;
+  border: 2px solid var(--cyan);
+  box-shadow: 0 0 20px var(--cyan), inset 0 0 20px rgba(0, 153, 255, 0.08);
+  animation: orbPulse 3s ease-in-out infinite;
+}
+
+.orb-mid {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 80px;
+  height: 80px;
+  margin-top: -40px;
+  margin-left: -40px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 153, 255, 0.4);
+  animation: orbPulse 3s ease-in-out infinite reverse;
+}
+
+/* ── NAVIX ROBOT FACE ── */
+.robot-frame {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--cyan);
+  box-shadow: 0 0 30px var(--cyan), 0 0 60px rgba(0, 153, 255, 0.25);
+  animation: robotGlow 3s ease-in-out infinite;
+  z-index: 5;
+  background: #000408;
+}
+
+.robot-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  filter: saturate(1.2) brightness(1.0) contrast(1.1);
+  display: block;
+}
+
+/* Scan line sweeping over the face */
+.robot-scan {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom,
+      transparent 0%,
+      rgba(0, 153, 255, 0.15) 48%,
+      rgba(0, 153, 255, 0.3) 50%,
+      rgba(0, 153, 255, 0.15) 52%,
+      transparent 100%);
+  animation: robotScan 3s linear infinite;
+  pointer-events: none;
+}
+
+/* ── ORB STATUS LABEL ── */
+.orb-status {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-hud);
+  font-size: 0.6rem;
+  letter-spacing: 0.3em;
+  color: var(--amber);
+  text-shadow: var(--glow-a);
+  white-space: nowrap;
+  z-index: 10;
+}
+
+/* ── BOTTOM DATA STRIP ── */
+.bottom-strip {
+  display: flex;
+  gap: 20px;
+  padding: 8px 24px;
+  background: rgba(0, 153, 255, 0.04);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  width: 100%;
+  max-width: 520px;
+  flex-shrink: 0;
+  justify-content: center;
+}
+
+.strip-item {
+  text-align: center;
+  font-size: 0.52rem;
+  letter-spacing: 0.15em;
+  line-height: 1.8;
+  color: rgba(0, 153, 255, 0.7);
+  min-width: 60px;
+}
+
+/* ── Q&A CONVERSATION PANEL ── */
+.qa-panel {
+  width: 100%;
+  max-width: 520px;
+  background: rgba(0, 153, 255, 0.03);
+  border: 1px solid rgba(0, 153, 255, 0.15);
+  border-top: none;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.qa-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(0, 153, 255, 0.08);
+  padding-bottom: 8px;
+}
+
+.qa-icon {
+  color: var(--amber);
+  font-size: 0.7rem;
+  text-shadow: var(--glow-a);
+}
+
+.qa-title {
+  font-family: var(--font-hud);
+  font-size: 0.58rem;
+  letter-spacing: 0.22em;
+  color: var(--amber);
+  text-shadow: var(--glow-a);
+  flex: 1;
+}
+
+.qa-badge {
+  font-size: 0.46rem;
+  letter-spacing: 0.15em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: rgba(0, 255, 136, 0.1);
+  color: var(--green);
+  border: 1px solid rgba(0, 255, 136, 0.25);
+  text-shadow: var(--glow-g);
+}
+
+.qa-badge.listening {
+  background: rgba(255, 59, 59, 0.12);
+  color: var(--red);
+  border-color: rgba(255, 59, 59, 0.3);
+}
+
+.qa-badge.thinking {
+  background: rgba(255, 152, 0, 0.12);
+  color: var(--amber);
+  border-color: rgba(255, 152, 0, 0.3);
+}
+
+.qa-badge.speaking {
+  background: rgba(0, 153, 255, 0.12);
+  color: var(--cyan);
+  border-color: rgba(0, 153, 255, 0.3);
+}
+
+.qa-question,
+.qa-answer {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.qa-label {
+  font-size: 0.44rem;
+  letter-spacing: 0.18em;
+  color: rgba(0, 153, 255, 0.4);
+}
+
+.qa-text {
+  font-family: 'Russo One', sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  line-height: 1.6;
+  color: rgba(0, 153, 255, 0.75);
+}
+
+.qa-answer .qa-text {
+  font-size: 0.85rem;
+  color: #ffffff;
+  text-shadow: 0 0 8px var(--cyan), 0 0 16px var(--cyan);
+  animation: qaHighlightGlow 2s ease-in-out infinite alternate;
+  margin-top: 4px;
+}
+
+@keyframes qaHighlightGlow {
+  0% {
+    text-shadow: 0 0 8px var(--cyan), 0 0 16px var(--cyan);
+  }
+
+  100% {
+    text-shadow: 0 0 12px var(--cyan), 0 0 24px var(--cyan), 0 0 32px rgba(0, 153, 255, 0.5);
+  }
+}
+
+.qa-cursor::after {
+  content: '▌';
+  animation: blinkFast 0.6s step-end infinite;
+  color: var(--cyan);
+}
+
+/* ── RECOMMENDATIONS ── */
+.qa-recs {
+  border-top: 1px solid rgba(0, 153, 255, 0.08);
+  padding-top: 8px;
+}
+
+.qa-rec-label {
+  font-size: 0.46rem;
+  letter-spacing: 0.18em;
+  color: var(--amber);
+  text-shadow: var(--glow-a);
+  margin-bottom: 5px;
+}
+
+.qa-rec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.qa-rec-item {
+  font-size: 0.54rem;
+  letter-spacing: 0.06em;
+  color: rgba(0, 153, 255, 0.5);
+  padding: 3px 8px;
+  border-left: 2px solid rgba(0, 153, 255, 0.18);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.qa-rec-item:hover {
+  color: var(--cyan);
+  border-left-color: var(--cyan);
+}
