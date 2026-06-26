@@ -97,6 +97,8 @@ def get_period() -> str:
 
 
 async def navix_session():
+    from app.services.personal_memory import is_onboarded, complete_onboarding
+
     from app.services.planner import get_todays_plan, save_daily_plan, get_yesterdays_plan
     from app.services.reminder import start_reminder_loop
     from app.services.voice.pin_auth import authenticate, is_authenticated
@@ -113,6 +115,23 @@ async def navix_session():
     if not success:
         await loop.run_in_executor(None, speak, "Wrong PIN. Shutting down.")
         return
+
+    if not await is_onboarded():
+        set_tray_state("talking")
+        speak("Hi! I'm NAVIX. Before we start, what's your name?")
+        set_tray_state("active")
+        name_response = listen_once(duration=10)
+        if name_response and name_response.strip():
+            speak(f"Nice to meet you, {name_response.strip()}! Where are you based?")
+            set_tray_state("active")
+            location_response = listen_once(duration=10)
+            await complete_onboarding(
+                name=name_response.strip(),
+                location=location_response.strip() if location_response else ""
+            )
+            speak("Perfect, I've got that saved. Let's get started!")
+        else:
+            speak("No problem, we can set that up later.")
 
     hour   = datetime.now().hour
     period = get_period()

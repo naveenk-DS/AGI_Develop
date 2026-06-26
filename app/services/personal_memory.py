@@ -16,18 +16,18 @@ MEMORY_CUSTOMER_ID = "naveen_personal"
 
 # Default personal profile
 DEFAULT_PROFILE = {
-    "name": "Naveen",
+    "name": "",
     "language": "english",
-    "location": "Chennai, Tamil Nadu",
-    "occupation": "AI Developer",
+    "location": "",
+    "occupation": "",
     "birthday": "",
     "family": {},
     "friends": [],
     "favourites": {
-        "music": "Tamil songs",
+        "music": "",
         "food": "",
         "sport": "",
-        "hobby": "building AI"
+        "hobby": ""
     },
     "important_dates": {},
     "goals": [],
@@ -37,7 +37,8 @@ DEFAULT_PROFILE = {
         "voice": "female",
         "language": "english"
     },
-    "memories": []
+    "memories": [],
+    "onboarded": False
 }
 
 async def load_profile() -> dict:
@@ -161,3 +162,16 @@ Personal information about the user:
     _context_cache = context.strip()
     _context_cache_ts = time.monotonic()
     return _context_cache
+
+async def is_onboarded() -> bool:
+    profile = await load_profile()
+    return profile.get("onboarded", False) and bool(profile.get("name"))
+
+async def complete_onboarding(name: str, location: str = "", occupation: str = ""):
+    profile = await load_profile()
+    profile["name"] = name
+    profile["location"] = location
+    profile["occupation"] = occupation
+    profile["onboarded"] = True
+    await save_profile(profile)
+    return f"Great, {name}! I've got your info saved."
