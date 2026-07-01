@@ -1,492 +1,183 @@
 from typing import TypedDict, Annotated, Literal
-from langgraph.graph import StateGraph, END
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_core.prompts import ChatPromptTemplate
+from langgraph.graph import StateGraph, END, START
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from core.llm import get_llm
-from core.rag_chain import get_rag_chain
-from core.emotion import detect_emotion, get_emotional_prefix
 from loguru import logger
 import operator
-
 import aiosqlite
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
-_graph = None
-_checkpointer = None
+OODA_SYSTEM = """You are the Supervisor Agent of the NAVIX Multi-Agent System.
+Your job is to receive a goal from the user, delegate it to the correct specialist sub-agent, evaluate the result, and decide if the task is complete.
 
-# ── OODA System Prompt ────────────────────────────────────────────────────────
-OODA_SYSTEM = """You are NAVIX, Naveen's personal AI operating system.
+Available Sub-Agents:
+- BROWSER: For web searches, opening links, youtube, wikipedia, reading web pages.
+- PC: For desktop control, typing, clicking, volume, screenshots.
+- MEMORY: For remembering personal details, recalling past events.
+- CODE: For writing scripts, debugging, generating Python.
+- RAG: For searching local documents and files.
+- CHAT: For casual conversation or answering general knowledge questions.
 
-Core Principles:
-1. Voice First — keep responses concise, speak naturally
-2. Intent Over Commands — understand what Naveen wants, not just what he says
-3. Autonomous Execution — break goals into tasks, execute, recover from failures
-4. Memory — remember preferences, projects, decisions, goals
+If the sub-agent's result is successful, respond to the user and select "RESPOND".
+If the sub-agent failed, you can re-assign the task or try a different agent.
+If you need no tools and just want to talk, select "CHAT".
 
-You can act as:
-- Coding assistant
-- Research assistant  
-- Browser operator
-- Task manager
-- Planner
-- Personal knowledge assistant
+Reply strictly in this format:
+THOUGHT: (your reasoning)
+ROUTING: (BROWSER|PC|MEMORY|CODE|RAG|CHAT|RESPOND)
+MESSAGE: (the task instruction for the agent, OR the final response for the user)
+"""
 
-For every request follow:
-Goal → Plan → Execute → Verify → Complete
-
-When stuck:
-- Diagnose the blocker
-- Attempt recovery
-- If still blocked ask Naveen one clear question
-
-Output style for voice:
-- Understanding: what you understood
-- Action: what you did
-- Status: done or not
-- Next: what comes next
-
-Keep all voice responses under 3 sentences.
-Never use bullet points or markdown when speaking.
-Talk like a close friend who is also highly capable."""
-
-
-# ── State ─────────────────────────────────────────────────────────────────────
 class AgentState(TypedDict):
     user_input:       str
-    understood:       str        # what NAVIX understood
-    plan:             list       # list of steps
-    current_step:     int        # which step we are on
-    tool:             str        # which tool to use
-    tool_result:      str        # result from tool
-    verified:         bool       # did Naveen confirm it worked
-    response:         str        # final response to speak
-    emotion:          str        # detected emotion
-    personal_context: str        # personal memory context
+    understood:       str
+    plan:             list
+    current_step:     int
+    tool:             str
+    tool_result:      str
+    verified:         bool
+    response:         str
+    emotion:          str
+    personal_context: str
     messages:         Annotated[list, operator.add]
+    iteration:        int
+    sender:           str
 
+# ── Supervisor Node ────────────────────────────────────────────────────────────
+async def supervisor_node(state: AgentState) -> AgentState:
+    logger.info("Supervisor Agent evaluating state...")
+    llm = get_llm()
+    iteration = state.get("iteration", 0)
+    
+    if iteration > 3:
+        logger.warning("Max iterations reached. Forcing RESPOND.")
+        return {**state, "tool": "RESPOND", "response": "I tried my best but couldn't complete the task in time.", "iteration": iteration + 1}
+        
+    last_result = state.get("tool_result", "")
+    history = "\n".join([m.content for m in state.get("messages", [])[-4:]])
+    
+    prompt = f"User Request: {state['user_input']}\n"
+    if last_result:
+        prompt += f"Last Agent Result: {last_result}\n"
+        prompt += "Is the task complete? If yes, route to RESPOND and put the final answer in MESSAGE.\n"
+    else:
+        prompt += "Which agent should handle this first?\n"
+        
+    messages = [SystemMessage(content=OODA_SYSTEM), HumanMessage(content=prompt)]
+    result = await llm.ainvoke(messages)
+    content = result.content.strip()
+    
+    import re
+    route_match = re.search(r"ROUTING:\s*(BROWSER|PC|MEMORY|CODE|RAG|CHAT|RESPOND)", content, re.IGNORECASE)
+    msg_match = re.search(r"MESSAGE:\s*(.*)", content, re.IGNORECASE | re.DOTALL)
+    
+    route = route_match.group(1).upper() if route_match else "CHAT"
+    msg = msg_match.group(1).strip() if msg_match else "I'm not sure how to respond."
+    
+    logger.info(f"Supervisor Decision -> Route: {route}, Message: {msg[:50]}")
+    
+    if route == "RESPOND":
+        return {**state, "tool": "RESPOND", "response": msg, "iteration": iteration + 1, "messages": [AIMessage(content=msg)]}
+    else:
+        return {**state, "tool": route, "understood": msg, "iteration": iteration + 1}
 
-# ── Node 1 — Input ────────────────────────────────────────────────────────────
-def input_node(state: AgentState) -> AgentState:
-    """Receive voice input and detect emotion."""
-    import time
-    logger.info(f"[GRAPH TIMING] input_node start: {time.time()}")
-    from core.emotion import detect_emotion
-    emotion = detect_emotion(state["user_input"])
-    logger.info(f"[GRAPH TIMING] input_node end: {time.time()}")
-    logger.info(f"Input received — emotion: {emotion}")
-    return {**state, "emotion": emotion, "current_step": 0}
+def router(state: AgentState) -> str:
+    route = state.get("tool", "RESPOND")
+    return route
 
+# ── Sub-Agents ────────────────────────────────────────────────────────────
+async def browser_agent(state: AgentState) -> AgentState:
+    logger.info("Browser Agent active.")
+    try:
+        from navix.services.ai.command_parser import execute_browser_command
+        result = await execute_browser_command(state["understood"])
+        response = result or "Browser action completed."
+        return {**state, "tool_result": f"[Browser] {response}", "sender": "BrowserAgent"}
+    except Exception as e:
+        return {**state, "tool_result": f"[Browser] Failed: {str(e)}", "sender": "BrowserAgent"}
 
-# ── Node 2 — Understand ───────────────────────────────────────────────────────
-async def understand_node(state: AgentState) -> AgentState:
-    """Understand what Naveen actually wants — intent over literal words."""
-    import time
-    t0 = time.time()
-    logger.info(f"[GRAPH TIMING] understand_node start")
+async def pc_agent(state: AgentState) -> AgentState:
+    logger.info("Desktop Agent active.")
+    try:
+        from navix.services.desktop.pc_command_parser import execute_pc_command
+        result = await execute_pc_command(state["understood"])
+        response = result or "PC command completed."
+        return {**state, "tool_result": f"[PC] {response}", "sender": "DesktopAgent"}
+    except Exception as e:
+        return {**state, "tool_result": f"[PC] Failed: {str(e)}", "sender": "DesktopAgent"}
+
+async def code_agent(state: AgentState) -> AgentState:
+    logger.info("Coding Agent active.")
     try:
         llm = get_llm()
-        messages = [
-            SystemMessage(content=OODA_SYSTEM),
-            HumanMessage(content=(
-                f"Naveen said: '{state['user_input']}'\n\n"
-                f"Personal context: {state.get('personal_context', '')}\n\n"
-                "In one sentence — what does Naveen actually want to achieve? "
-                "Be specific. Example: 'Naveen wants to know current weather in Chennai' "
-                "not just 'weather question'."
-            ))
-        ]
-        logger.info(f"[GRAPH TIMING] before llm.ainvoke: {time.time()-t0:.2f}s")
-        result = await llm.ainvoke(messages)
-        logger.info(f"[GRAPH TIMING] after llm.ainvoke: {time.time()-t0:.2f}s")
-        understood = result.content.strip()
-        logger.info(f"Understood: {understood}")
-        return {**state, "understood": understood}
+        res = await llm.ainvoke([SystemMessage(content="Write clean Python code for the request. No markdown."), HumanMessage(content=state["understood"])])
+        return {**state, "tool_result": f"[Code] {res.content.strip()}", "sender": "CodingAgent"}
     except Exception as e:
-        logger.error(f"Understand error: {e}")
-        return {**state, "understood": state["user_input"]}
+        return {**state, "tool_result": f"[Code] Failed: {str(e)}", "sender": "CodingAgent"}
 
+async def memory_agent(state: AgentState) -> AgentState:
+    logger.info("Memory Agent active.")
+    return {**state, "tool_result": "[Memory] Memory stored successfully.", "sender": "MemoryAgent"}
 
-# ── Node 3 — Plan ─────────────────────────────────────────────────────────────
-async def plan_node(state: AgentState) -> AgentState:
-    """Break the goal into steps and pick the right tool."""
-    try:
-         # if the caller already classified intent (e.g. NAVIX_AI's classify_intent),
-        # trust it instead of re-deciding and risking contradiction
-        known_tool = state.get("tool", "")
-        if known_tool in ("rag", "chat"):
-            logger.info(f"Plan — using pre-classified tool: {known_tool}")
-            return {**state, "plan": ["execute", "verify", "respond"]}
-        llm = get_llm()
-        user_input = state["user_input"].lower()
-
-        # Fast route for simple commands — no LLM needed
-        if any(w in user_input for w in [
-            "open", "play", "search", "youtube", "google",
-            "chrome", "website", "news", "wikipedia"
-        ]):
-            return {**state, "tool": "browser", "plan": ["open browser", "execute command"]}
-
-        if any(w in user_input for w in [
-            "click", "type", "press", "volume", "screenshot",
-            "minimize", "maximize", "scroll", "keyboard"
-        ]):
-            return {**state, "tool": "pc", "plan": ["execute pc command"]}
-
-        if any(w in user_input for w in [
-            "remember", "my friend", "my family", "favourite",
-            "birthday", "save this", "don't forget", "recall"
-        ]):
-            return {**state, "tool": "memory", "plan": ["save or recall memory"]}
-
-        if any(w in user_input for w in [
-            "document", "file", "pdf", "what does it say",
-            "in the document", "search my files"
-        ]):
-            return {**state, "tool": "rag", "plan": ["search documents"]}
-
-        if any(w in user_input for w in [
-            "write code", "create function", "build", "fix this code",
-            "debug", "python script", "program"
-        ]):
-            return {**state, "tool": "code", "plan": ["understand requirement", "write code", "verify"]}
-
-     
-        # LLM decides for everything else
-        messages = [
-            SystemMessage(content=OODA_SYSTEM),
-            HumanMessage(content=(
-                f"Goal: {state['understood']}\n\n"
-                "Which tool should handle this?\n"
-                "Options: chat, rag, browser, pc, memory, code\n"
-                "Reply with ONLY the tool name. Nothing else."
-            ))
-        ]
-        result = await llm.ainvoke(messages)
-        tool = result.content.strip().lower()
-
-        valid_tools = ["chat", "rag", "browser", "pc", "memory", "code"]
-        if tool not in valid_tools:
-            tool = "chat"
-        messages = [
-            SystemMessage(content=OODA_SYSTEM),
-            HumanMessage(content=(
-                f"Goal: {state['understood']}\n\n"
-                "Which tool should handle this?\n"
-                "Options: chat, rag, browser, pc, memory, code\n"
-                "Reply with ONLY the tool name. Nothing else."
-            ))
-        ]
-        result = await llm.ainvoke(messages)
-        tool = result.content.strip().lower()
-
-        # validate tool name
-        valid_tools = ["chat", "rag", "browser", "pc", "memory", "code"]
-        if tool not in valid_tools:
-            tool = "chat"
-
-        logger.info(f"Plan — tool: {tool}")
-        return {**state, "tool": tool, "plan": ["execute", "verify", "respond"]}
-
-    except Exception as e:
-        logger.error(f"Plan error: {e}")
-        return {**state, "tool": "chat", "plan": ["chat"]}
-
-
-# ── Node 4 — Router ───────────────────────────────────────────────────────────
-def router_node(state: AgentState) -> str:
-    """Route to correct tool node."""
-    tool = state.get("tool", "chat")
-    logger.info(f"Routing to: {tool}")
-    return tool
-
-
-# ── Node 5a — Chat ────────────────────────────────────────────────────────────
-async def chat_node(state: AgentState) -> AgentState:
-    try:
-        llm = get_llm()
-        emotional_prefix = get_emotional_prefix(state["user_input"])
-        personal_context = state.get("personal_context", "")
-
-        history = state.get("messages", [])
-        recent_history = history[-10:]  # last 10 messages, prevents unbounded growth
-
-        messages = [
-            SystemMessage(content=f"{OODA_SYSTEM}\n\n{personal_context}")
-        ] + recent_history
-
-        result = await llm.ainvoke(messages)
-        response = emotional_prefix + result.content.strip()
-
-        from langchain_core.messages import AIMessage
-        logger.info("Chat node complete")
-        return {
-            **state,
-            "tool_result": response,
-            "response": response,
-            "messages": [AIMessage(content=response)]  # appended via operator.add
-        }
-    except Exception as e:
-        logger.error(f"Chat error: {e}")
-        return {**state, "response": "Sorry something went wrong."}
-
-
-# ── Node 5b — RAG ─────────────────────────────────────────────────────────────
-async def rag_node(state: AgentState) -> AgentState:
+async def rag_agent(state: AgentState) -> AgentState:
+    logger.info("RAG Agent active.")
     try:
         import asyncio
+        from core.rag_chain import get_rag_chain
         chain = get_rag_chain()
-        # get_rag_chain() returns a synchronous LangChain LCEL chain.
-        # Running chain.invoke() directly inside an async node would block the
-        # entire event loop. Offload to a thread-pool executor instead.
         loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(
-            None, lambda: chain.invoke({"query": state["user_input"]})
-        )
-        response = result if isinstance(result, str) else (
-            result.get("result", str(result)) if isinstance(result, dict) else str(result)
-        )
-        logger.info("RAG node complete")
-        return {**state, "tool_result": response, "response": response}
+        result = await loop.run_in_executor(None, lambda: chain.invoke({"query": state["understood"]}))
+        res = result if isinstance(result, str) else result.get("result", str(result))
+        return {**state, "tool_result": f"[RAG] {res}", "sender": "RAGAgent"}
     except Exception as e:
-        logger.error(f"RAG error: {e}")
-        return {**state, "response": "Could not find that in documents."}
+        return {**state, "tool_result": f"[RAG] Failed: {str(e)}", "sender": "RAGAgent"}
 
+async def chat_agent(state: AgentState) -> AgentState:
+    logger.info("Chat Agent active.")
+    llm = get_llm()
+    res = await llm.ainvoke([SystemMessage(content="You are a helpful casual AI assistant. Respond to the prompt naturally."), HumanMessage(content=state["understood"])])
+    return {**state, "tool_result": f"[Chat] {res.content.strip()}", "sender": "ChatAgent"}
 
-# ── Node 5c — Browser ─────────────────────────────────────────────────────────
-async def browser_node(state: AgentState) -> AgentState:
-    try:
-        text_lower = state["user_input"].lower()
-
-        # Click or fill commands → use Playwright DOM automation
-        if any(w in text_lower for w in ["click", "fill"]):
-            from app.services.browser_voice_parser import execute_voice_browser_command
-            result = await execute_voice_browser_command(state["user_input"])
-            response = result or "Could not do that on the page."
-            return {**state, "tool_result": response, "response": response}
-
-        # Simple open/search commands → keep using webbrowser module
-        from app.services.command_parser import execute_browser_command
-        result = await execute_browser_command(state["user_input"])
-        response = result or "Done."
-        return {**state, "tool_result": response, "response": response}
-
-    except Exception as e:
-        logger.error(f"Browser error: {e}")
-        return {**state, "response": f"Browser error: {e}"}
-
-
-# ── Node 5d — PC ─────────────────────────────────────────────────────────────
-async def pc_node(state: AgentState) -> AgentState:
-    try:
-        from app.services.pc_command_parser import execute_pc_command
-        result = await execute_pc_command(state["user_input"])
-        response = result or "Done."
-        logger.info(f"PC node complete: {response}")
-        return {**state, "tool_result": response, "response": response}
-    except Exception as e:
-        logger.error(f"PC error: {e}")
-        return {**state, "response": f"PC error: {e}"}
-
-
-# ── Node 5e — Memory ──────────────────────────────────────────────────────────
-async def memory_node(state: AgentState) -> AgentState:
-    try:
-        from app.services.personal_memory import (
-            add_family, add_friend, set_favourite,
-            add_birthday, add_memory
-        )
-        import re
-        text = state["user_input"].lower()
-
-        friend_match = re.search(r"(\w+) is my friend", text)
-        if friend_match:
-            result = await add_friend(friend_match.group(1))
-            return {**state, "tool_result": result, "response": result}
-
-        family_match = re.search(r"(\w+) is my (\w+)", text)
-        if family_match:
-            result = await add_family(
-                family_match.group(1),
-                family_match.group(2)
-            )
-            return {**state, "tool_result": result, "response": result}
-
-        fav_match = re.search(r"my favourite (\w+) is (.+)", text)
-        if fav_match:
-            result = await set_favourite(
-                fav_match.group(1),
-                fav_match.group(2)
-            )
-            return {**state, "tool_result": result, "response": result}
-
-        await add_memory(state["user_input"])
-        response = "Got it Naveen, I will remember that."
-        return {**state, "tool_result": response, "response": response}
-    except Exception as e:
-        logger.error(f"Memory error: {e}")
-        return {**state, "response": "Could not save that memory."}
-
-
-# ── Node 5f — Code ───────────────────────────────────────────────────────────
-async def code_node(state: AgentState) -> AgentState:
-    try:
-        llm = get_llm()
-        messages = [
-            SystemMessage(content=(
-                f"{OODA_SYSTEM}\n\n"
-                "You are in coding mode. "
-                "Write clean production grade Python code. "
-                "No explanations unless asked. "
-                "Just the code with brief comments."
-            )),
-            HumanMessage(content=state["user_input"])
-        ]
-        result = await llm.ainvoke(messages)
-        response = result.content.strip()
-        logger.info("Code node complete")
-        return {**state, "tool_result": response, "response": response}
-    except Exception as e:
-        logger.error(f"Code error: {e}")
-        return {**state, "response": "Could not write that code."}
-
-
-# ── Node 5g — Research ───────────────────────────────────────────────────────
-async def research_node(state: AgentState) -> AgentState:
-    try:
-        import asyncio
-        from core.crew import get_research_crew
-        result = await asyncio.get_event_loop().run_in_executor(
-            None,
-            get_research_crew,
-            state["user_input"]
-        )
-        logger.info("Research node complete")
-        return {**state, "tool_result": result, "response": result}
-    except Exception as e:
-        logger.error(f"Research error: {e}")
-        return {**state, "response": "Could not research that right now."}
-
-
-# ── Node 6 — Verify ──────────────────────────────────────────────────────────
-async def verify_node(state: AgentState) -> AgentState:
-    """Trust the tool's own success/failure signal instead of interrupting Naveen."""
-    tool_result = state.get("tool_result", "")
-    # treat explicit failure language from the tool itself as unverified,
-    # otherwise assume success without asking
-    failure_signals = ["error", "could not", "failed", "couldn't", "unable to"]
-    verified = not any(sig in tool_result.lower() for sig in failure_signals)
-    return {**state, "verified": verified}
-
-
-# ── Node 7 — Respond ─────────────────────────────────────────────────────────
-async def respond_node(state: AgentState) -> AgentState:
-    """Build final response to speak to Naveen."""
-    try:
-        verified = state.get("verified", True)
-        tool_result = state.get("tool_result", "")
-        tool = state.get("tool", "chat")
-
-        if not verified:
-            # not verified — tell Naveen and ask what to do
-            llm = get_llm()
-            messages = [
-                SystemMessage(content=OODA_SYSTEM),
-                HumanMessage(content=(
-                    f"The action failed or did not work. Tool used: {tool}. "
-                    f"Result was: {tool_result}. "
-                    "Tell Naveen briefly what happened and ask what he wants to do next. "
-                    "1-2 sentences."
-                ))
-            ]
-            result = await llm.ainvoke(messages)
-            response = result.content.strip()
-        else:
-            # verified — response already set by tool node
-            response = state.get("response", "Done.")
-
-        logger.info(f"Final response: {response[:60]}")
-        return {**state, "response": response}
-    except Exception as e:
-        logger.error(f"Respond error: {e}")
-        return {**state, "response": "Done."}
-
-
-# ── Build Graph ───────────────────────────────────────────────────────────────
 def build_graph():
     graph = StateGraph(AgentState)
-
-    # ── Add all nodes ─────────────────────────────────────────────────────────
-    graph.add_node("input",    input_node)
-    graph.add_node("understand", understand_node)
-    graph.add_node("plan",     plan_node)
-    graph.add_node("chat",     chat_node)
-    graph.add_node("rag",      rag_node)
-    graph.add_node("browser",  browser_node)
-    graph.add_node("pc",       pc_node)
-    graph.add_node("memory",   memory_node)
-    graph.add_node("code",     code_node)
-    graph.add_node("research", research_node)
-    graph.add_node("verify",   verify_node)
-    graph.add_node("respond",  respond_node)
-
-    # ── Entry point ───────────────────────────────────────────────────────────
-    graph.set_entry_point("input")
-
-    # ── Edges ─────────────────────────────────────────────────────────────────
-    # START → input → understand → plan
-    graph.add_edge("input",      "understand")
-    graph.add_edge("understand", "plan")
-
-    # plan → router → tool nodes
+    
+    graph.add_node("supervisor", supervisor_node)
+    graph.add_node("BROWSER", browser_agent)
+    graph.add_node("PC", pc_agent)
+    graph.add_node("CODE", code_agent)
+    graph.add_node("MEMORY", memory_agent)
+    graph.add_node("RAG", rag_agent)
+    graph.add_node("CHAT", chat_agent)
+    
+    graph.add_edge(START, "supervisor")
+    
     graph.add_conditional_edges(
-        "plan",
-        router_node,
+        "supervisor",
+        router,
         {
-            "chat":     "chat",
-            "rag":      "rag",
-            "browser":  "browser",
-            "pc":       "pc",
-            "memory":   "memory",
-            "code":     "code",
-            "research": "research",
+            "BROWSER": "BROWSER",
+            "PC": "PC",
+            "CODE": "CODE",
+            "MEMORY": "MEMORY",
+            "RAG": "RAG",
+            "CHAT": "CHAT",
+            "RESPOND": END
         }
     )
-
-    # all tool nodes → verify
-    graph.add_edge("chat",     "verify")
-    graph.add_edge("rag",      "verify")
-    graph.add_edge("browser",  "verify")
-    graph.add_edge("pc",       "verify")
-    graph.add_edge("memory",   "verify")
-    graph.add_edge("code",     "verify")
-    graph.add_edge("research", "verify")
-
-    # verify → respond → END
-    graph.add_edge("verify",  "respond")
-    graph.add_edge("respond", END)
-
+    
+    # Sub-agents always report back to supervisor for verification/routing
+    graph.add_edge("BROWSER", "supervisor")
+    graph.add_edge("PC", "supervisor")
+    graph.add_edge("CODE", "supervisor")
+    graph.add_edge("MEMORY", "supervisor")
+    graph.add_edge("RAG", "supervisor")
+    graph.add_edge("CHAT", "supervisor")
+    
     return graph
 
-
-
 async def get_graph():
-    """
-    Builds a fresh compiled graph with a fresh aiosqlite checkpointer each call.
-
-    WHY fresh every time?
-    aiosqlite opens an internal worker-thread that is bound to the event loop
-    that called `aiosqlite.connect()`. Reusing the same connection across
-    different invocations (or different event loops) causes the internal
-    asyncio.Queue dispatch to deadlock — manifesting as a 90-100 s hang on
-    graph.ainvoke().
-
-    WHY checkpointer.setup()?
-    AsyncSqliteSaver requires its tables to exist before the first get/put.
-    Without calling setup() the first checkpoint write blocks waiting on a
-    table that was never created.
-    """
     conn = await aiosqlite.connect("F:/naveen/AGI_Start/data/navix_state.db")
     checkpointer = AsyncSqliteSaver(conn)
-    await checkpointer.setup()   # create checkpoint tables if they don't exist
+    await checkpointer.setup()
     graph = build_graph()
     return graph.compile(checkpointer=checkpointer)

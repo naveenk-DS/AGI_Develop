@@ -85,40 +85,40 @@ def register_all_tools():
 
     # Browser tools
     async def tool_open_youtube(query: str = "") -> str:
-        from app.services.browser import open_youtube
+        from navix.services.browser.browser import open_youtube
         return await open_youtube(query)
 
     async def tool_search_google(query: str) -> str:
-        from app.services.browser import search_google
+        from navix.services.browser.browser import search_google
         return await search_google(query)
 
     async def tool_open_url(url: str) -> str:
-        from app.services.browser import open_url
+        from navix.services.browser.browser import open_url
         return await open_url(url)
 
     async def tool_get_news() -> str:
-        from app.services.news_briefing import get_quick_headlines
+        from navix.services.ai.news_briefing import get_quick_headlines
         return await get_quick_headlines()
 
     async def tool_wikipedia(query: str) -> str:
-        from app.services.browser import search_wikipedia
+        from navix.services.browser.browser import search_wikipedia
         return await search_wikipedia(query)
 
     # PC tools
     async def tool_screenshot() -> str:
-        from app.services.screen_vision import what_is_on_screen
+        from navix.services.vision.screen_vision import what_is_on_screen
         return await what_is_on_screen()
 
     async def tool_type_text(text: str) -> str:
-        from app.services.pc_control import type_text
+        from navix.services.desktop.pc_control import type_text
         return type_text(text)
 
     async def tool_volume_up() -> str:
-        from app.services.pc_control import volume_up
+        from navix.services.desktop.pc_control import volume_up
         return volume_up()
 
     async def tool_volume_down() -> str:
-        from app.services.pc_control import volume_down
+        from navix.services.desktop.pc_control import volume_down
         return volume_down()
 
     # Knowledge tools
@@ -126,26 +126,26 @@ def register_all_tools():
         return await advanced_rag_query(query)
 
     async def tool_graph_search(query: str) -> str:
-        from app.services.knowledge_graph import graph_search
+        from navix.services.memory.knowledge_graph import graph_search
         result = await graph_search(query)
         return result or "No connected concepts found"
 
     async def tool_daily_briefing() -> str:
-        from app.services.news_briefing import build_morning_briefing
+        from navix.services.ai.news_briefing import build_morning_briefing
         return await build_morning_briefing()
 
     async def tool_world_insight() -> str:
-        from app.services.world_model import generate_daily_insight
+        from navix.services.memory.world_model import generate_daily_insight
         return await generate_daily_insight()
 
     # Memory tools
     async def tool_remember(text: str) -> str:
-        from app.services.personal_memory import add_memory
+        from navix.services.memory.personal_memory import add_memory
         await add_memory(text)
         return f"Remembered: {text}"
 
     async def tool_planner_today() -> str:
-        from app.services.planner import get_todays_plan
+        from navix.services.ai.planner import get_todays_plan
         plan = await get_todays_plan()
         return plan or "No plan set for today"
 

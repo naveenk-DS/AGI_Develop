@@ -4,7 +4,7 @@ import webbrowser
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from loguru import logger
-from app.services.voice.NAVIX_AI import start_navix, navix_session
+from navix.services.voice.NAVIX_AI import start_navix, navix_session
 from navix_tray import start_tray, set_tray_state
 
 _main_loop = None
@@ -17,6 +17,9 @@ def _start_hud_server():
     class _Handler(SimpleHTTPRequestHandler):
         def __init__(self, *a, **kw):
             super().__init__(*a, directory=str(HUD_DIR), **kw)
+        def end_headers(self):
+            self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            super().end_headers()
         def log_message(self, *_): pass  # suppress access logs
 
     try:
@@ -68,7 +71,7 @@ def _run_async():
 def _start_api_server():
     import uvicorn
     # Start the backend API on port 8001 so the HUD can poll it
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8001, log_level="warning")
+    uvicorn.run("navix.main:app", host="127.0.0.1", port=8001, log_level="warning")
 
 if __name__ == "__main__":
     # Start the API server in background

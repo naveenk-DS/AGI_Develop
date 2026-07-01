@@ -24,6 +24,8 @@ services:
       - ./logs:/app/logs
       - ./screenshots:/app/screenshots
       - ./data:/app/data
+      # Mount UI folder for instant updates without rebuilding
+      - ./navix_hud_ui:/app/navix_hud_ui
     depends_on:
       - qdrant
       - ollama

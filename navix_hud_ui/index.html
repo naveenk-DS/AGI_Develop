@@ -1,313 +1,222 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NAVIX — Advanced HUD Interface</title>
+  <title>NAVIX OS</title>
   <link rel="stylesheet" href="css/variables.css" />
-  <link rel="stylesheet" href="css/animations.css" />
   <link rel="stylesheet" href="css/layout.css" />
-  <link rel="stylesheet" href="css/center.css" />
-  <link rel="stylesheet" href="css/overlays.css" />
-  <link rel="stylesheet" href="css/news.css" />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Russo+One&display=swap"
-    rel="stylesheet" />
-  <meta name="description" content="NAVIX AGI Interface – Secure HUD with PIN authentication" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
-
 <body>
-
-  <!-- ══════════════════════════════════════════
-       MODE SELECTION OVERLAY  (shown first)
-  ══════════════════════════════════════════ -->
-  <div id="modeOverlay" class="mode-overlay">
-    <div class="pin-grid-bg"></div>
-    <div class="mode-scan-line"></div>
-    <div class="mode-container">
-      <div class="mode-logo">
-        <div class="pin-logo-rings" style="width:140px;height:140px">
-          <div class="pin-ring r1" style="width:140px;height:140px"></div>
-          <div class="pin-ring r2" style="width:102px;height:102px"></div>
-          <div class="pin-ring r3" style="width:68px;height:68px"></div>
-          <div class="pin-orb" style="width:26px;height:26px"></div>
-        </div>
-        <div class="mode-title">N A V I X</div>
-        <div class="mode-subtitle">AGI INTERFACE v3.0 — SELECT OPERATION MODE</div>
-      </div>
-      <div class="mode-cards">
-        <div class="mode-card mode-card-offline" id="modeOffline">
-          <div class="mode-card-icon">◉</div>
-          <div class="mode-card-name">OFFLINE</div>
-          <div class="mode-card-desc">Local AI processing<br>Cached news feeds<br>Zero network dependency</div>
-          <div class="mode-card-tag cyan-text">STANDALONE MODE</div>
-        </div>
-        <div class="mode-card mode-card-online" id="modeOnline">
-          <div class="mode-card-icon amber-text">◎</div>
-          <div class="mode-card-name amber-text">ONLINE</div>
-          <div class="mode-card-desc">Live AI news feeds<br>Real-time data sync<br>Cloud intelligence</div>
-          <div class="mode-card-tag amber-text blink-slow">● CONNECTED MODE</div>
-        </div>
-      </div>
-      <div class="mode-footer">CLICK A MODE TO PROCEED — KEYBOARD: <span class="cyan-text">O</span> = OFFLINE
-        &nbsp;|&nbsp; <span class="amber-text">N</span> = ONLINE</div>
-    </div>
+  <!-- ── Background Effects ── -->
+  <div class="bg-layer">
+    <div class="bg-grid"></div>
+    <div class="bg-glow cyan-ambient"></div>
+    <div class="bg-glow purple-ambient"></div>
   </div>
 
-  <!-- ══════════════════════════════════════════
-       PIN LOCK SCREEN OVERLAY
-  ══════════════════════════════════════════ -->
-  <div id="pinOverlay" class="pin-overlay" style="opacity:0;pointer-events:none">
-    <!-- Background grid -->
-    <div class="pin-grid-bg"></div>
-
-    <div class="pin-container">
-      <!-- Logo / title -->
-      <div class="pin-logo">
-        <div class="pin-logo-rings">
-          <div class="pin-ring r1"></div>
-          <div class="pin-ring r2"></div>
-          <div class="pin-ring r3"></div>
-          <div class="pin-orb"></div>
+  <div class="os-layout">
+    
+    <!-- ── TOP BAR ── -->
+    <header class="top-bar glass-panel">
+      <div class="top-left">
+        <div class="logo">
+          <span class="logo-n">N</span>
         </div>
-        <div class="pin-title">N A V I X</div>
-        <div class="pin-subtitle" id="pinSubtitle">AGI INTERFACE v3.0 — SECURE ACCESS</div>
+        <div class="brand">
+          <span class="brand-title">NAVIX OS</span>
+          <span class="brand-subtitle">Your Voice. Your OS. Your World.</span>
+        </div>
       </div>
 
-      <!-- PIN dots -->
-      <div class="pin-dots" id="pinDots">
-        <span class="pin-dot" id="pd0"></span>
-        <span class="pin-dot" id="pd1"></span>
-        <span class="pin-dot" id="pd2"></span>
-        <span class="pin-dot" id="pd3"></span>
+      <div class="top-center">
+        <div class="search-bar">
+          <i class="fa-solid fa-microphone search-icon"></i>
+          <input type="text" placeholder="Speak or type a command..." />
+          <div class="shortcut-key">Ctrl K</div>
+        </div>
       </div>
 
-      <!-- Status message -->
-      <div class="pin-status" id="pinStatus">ENTER YOUR PIN TO ACTIVATE</div>
-
-      <!-- Numpad -->
-      <div class="pin-numpad" id="pinNumpad">
-        <button class="pin-key" data-val="1" id="pk1">1</button>
-        <button class="pin-key" data-val="2" id="pk2">2</button>
-        <button class="pin-key" data-val="3" id="pk3">3</button>
-        <button class="pin-key" data-val="4" id="pk4">4</button>
-        <button class="pin-key" data-val="5" id="pk5">5</button>
-        <button class="pin-key" data-val="6" id="pk6">6</button>
-        <button class="pin-key" data-val="7" id="pk7">7</button>
-        <button class="pin-key" data-val="8" id="pk8">8</button>
-        <button class="pin-key" data-val="9" id="pk9">9</button>
-        <button class="pin-key pin-key-clear" id="pkClear">CLR</button>
-        <button class="pin-key" data-val="0" id="pk0">0</button>
-        <button class="pin-key pin-key-enter" id="pkEnter">↵</button>
+      <div class="top-right">
+        <div class="status-badge"><i class="fa-solid fa-shield-halved"></i> SECURE</div>
+        <i class="fa-solid fa-wifi top-icon"></i>
+        <i class="fa-solid fa-bell top-icon"></i>
+        <i class="fa-solid fa-gear top-icon"></i>
+        <div class="clock-panel">
+          <div class="time">21:49</div>
+          <div class="date">May 24, 2025</div>
+        </div>
+        <div class="profile-icon">N</div>
       </div>
+    </header>
 
-      <!-- Set / Change PIN link -->
-      <div class="pin-footer">
-        <span class="pin-link" id="setPinLink">⚙ SET / CHANGE PIN</span>
-      </div>
+    <div class="main-body">
+      
+      <!-- ── LEFT SIDEBAR ── -->
+      <aside class="left-sidebar glass-panel">
+        <nav class="nav-menu">
+          <a class="nav-item active"><i class="fa-solid fa-house"></i> Home</a>
+          <a class="nav-item"><i class="fa-solid fa-brain"></i> Assistant</a>
+          <a class="nav-item"><i class="fa-regular fa-folder"></i> Files</a>
+          <a class="nav-item"><i class="fa-solid fa-globe"></i> Browser</a>
+          <a class="nav-item"><i class="fa-solid fa-code"></i> Code</a>
+          <a class="nav-item"><i class="fa-solid fa-terminal"></i> Terminal</a>
+          <a class="nav-item"><i class="fa-solid fa-file-lines"></i> Documents</a>
+          <a class="nav-item"><i class="fa-solid fa-photo-film"></i> Media</a>
+          <a class="nav-item"><i class="fa-solid fa-robot"></i> Automation</a>
+          <a class="nav-item"><i class="fa-solid fa-gear"></i> Settings</a>
+        </nav>
+
+        <div class="system-overview">
+          <div class="overview-title">SYSTEM OVERVIEW</div>
+          <div class="stat-row">
+            <span>CPU Usage</span> <span class="mono">28%</span>
+          </div>
+          <div class="progress-bar"><div class="fill cyan" style="width: 28%"></div></div>
+          
+          <div class="stat-row">
+            <span>GPU Usage</span> <span class="mono">63%</span>
+          </div>
+          <div class="progress-bar"><div class="fill purple" style="width: 63%"></div></div>
+          
+          <div class="stat-row">
+            <span>RAM Usage</span> <span class="mono">62%</span>
+          </div>
+          <div class="progress-bar"><div class="fill emerald" style="width: 62%"></div></div>
+        </div>
+      </aside>
+
+      <!-- ── CENTER AREA ── -->
+      <main class="center-content">
+        <div class="welcome-header">
+          <h1>Welcome back, <span class="highlight">Naveen</span></h1>
+          <p>What would you like to achieve today?</p>
+        </div>
+
+        <div class="quick-actions-row">
+          <div class="action-card"><i class="fa-solid fa-magnifying-glass cyan-text"></i> <div><b>Research</b><span>Search & Summarize</span></div></div>
+          <div class="action-card"><i class="fa-solid fa-code purple-text"></i> <div><b>Code</b><span>Write & Debug</span></div></div>
+          <div class="action-card"><i class="fa-solid fa-robot emerald-text"></i> <div><b>Automate</b><span>Tasks & Workflows</span></div></div>
+          <div class="action-card"><i class="fa-solid fa-chart-line orange-text"></i> <div><b>Analyze</b><span>Data & Insights</span></div></div>
+        </div>
+
+        <div class="core-section">
+          <div class="context-panel glass-panel">
+            <div class="panel-title">ACTIVE CONTEXT</div>
+            <div class="ctx-item">Project: <span>NAVIX OS</span></div>
+            <div class="ctx-item">Mode: <span>Assistant</span></div>
+            <div class="ctx-item">Memory: <span>86%</span></div>
+            <div class="ctx-item">Status: <span class="emerald-text">Optimal ●</span></div>
+          </div>
+
+          <div class="ai-core-container">
+            <div class="core-ring outer"></div>
+            <div class="core-ring middle"></div>
+            <div class="core-ring inner"></div>
+            <div class="core-logo">N</div>
+          </div>
+
+          <div class="suggestions-panel glass-panel">
+            <div class="panel-title">SMART SUGGESTIONS</div>
+            <div class="sugg-item"><i class="fa-regular fa-file-code"></i> Continue coding in main.py</div>
+            <div class="sugg-item"><i class="fa-solid fa-chart-pie"></i> Review performance analytics</div>
+            <div class="sugg-item"><i class="fa-solid fa-shield-check"></i> Check system updates</div>
+          </div>
+        </div>
+
+        <div class="chat-region glass-panel">
+          <div class="chat-status">
+            I'm NAVIX, your <b>AI OS</b>.<br/>
+            <span class="emerald-text"><i class="fa-solid fa-circle-dot" style="font-size: 8px;"></i> ONLINE • READY</span>
+          </div>
+          <div class="chat-input-area">
+            <i class="fa-solid fa-microphone mic-btn"></i>
+            <input type="text" placeholder="How can I help you today?" />
+            <i class="fa-solid fa-paper-plane send-btn"></i>
+          </div>
+        </div>
+
+        <div class="workflow-pipeline glass-panel">
+          <div class="panel-title" style="text-align: center; margin-bottom: 15px;">END TO END WORKFLOW</div>
+          <div class="pipeline">
+            <div class="pipe-node"><i class="fa-solid fa-microphone cyan-text"></i><span>YOU SPEAK</span><small>Wake word</small></div>
+            <i class="fa-solid fa-arrow-right pipe-arrow"></i>
+            <div class="pipe-node"><i class="fa-solid fa-brain purple-text"></i><span>UNDERSTAND</span><small>Intent detection</small></div>
+            <i class="fa-solid fa-arrow-right pipe-arrow"></i>
+            <div class="pipe-node"><i class="fa-solid fa-microchip blue-text"></i><span>THINK</span><small>Local LLM</small></div>
+            <i class="fa-solid fa-arrow-right pipe-arrow"></i>
+            <div class="pipe-node"><i class="fa-solid fa-diagram-project orange-text"></i><span>DECIDE</span><small>Tool selection</small></div>
+            <i class="fa-solid fa-arrow-right pipe-arrow"></i>
+            <div class="pipe-node"><i class="fa-solid fa-bolt emerald-text"></i><span>ACT</span><small>Execute tasks</small></div>
+            <i class="fa-solid fa-arrow-right pipe-arrow"></i>
+            <div class="pipe-node"><i class="fa-solid fa-comment-dots purple-text"></i><span>RESPOND</span><small>Voice output</small></div>
+          </div>
+        </div>
+      </main>
+
+      <!-- ── RIGHT SIDEBAR ── -->
+      <aside class="right-sidebar glass-panel">
+        <div class="future-ready">
+          <div class="panel-title">FUTURE READY</div>
+          <div class="fr-item"><i class="fa-solid fa-wifi purple-text"></i> <div><b>Fully Offline</b><span>No Cloud. 100% Private.</span></div></div>
+          <div class="fr-item"><i class="fa-solid fa-puzzle-piece blue-text"></i> <div><b>Self Evolving</b><span>Learns & Improves locally.</span></div></div>
+          <div class="fr-item"><i class="fa-solid fa-eye cyan-text"></i> <div><b>Multi Modal</b><span>Voice • Vision • Text</span></div></div>
+          <div class="fr-item"><i class="fa-solid fa-shield-halved emerald-text"></i> <div><b>Secure by Design</b><span>Data stays with you.</span></div></div>
+        </div>
+
+        <div class="recent-events">
+          <div class="panel-title">RECENT EVENTS</div>
+          <div class="event-item">
+            <span class="mono">21:48</span> <i class="fa-solid fa-code"></i> <div>Code generated<br/><span>main.py</span></div>
+          </div>
+          <div class="event-item">
+            <span class="mono">21:47</span> <i class="fa-solid fa-globe"></i> <div>Web search<br/><span>AI advancements 2025</span></div>
+          </div>
+          <div class="event-item">
+            <span class="mono">21:45</span> <i class="fa-solid fa-file"></i> <div>File opened<br/><span>project_plan.pdf</span></div>
+          </div>
+        </div>
+
+        <div class="system-health glass-panel" style="margin-top: auto; padding: 15px; border-radius: 12px;">
+          <div class="panel-title">SYSTEM HEALTH</div>
+          <div style="display: flex; gap: 15px; align-items: center; margin-top: 10px;">
+            <div class="health-ring">96%</div>
+            <div class="health-stats" style="flex: 1; font-size: 0.75rem;">
+              <div style="display: flex; justify-content: space-between;"><span>Temp</span><span class="mono">48°C</span></div>
+              <div style="display: flex; justify-content: space-between;"><span>Battery</span><span class="mono">82%</span></div>
+              <div style="display: flex; justify-content: space-between;"><span>Uptime</span><span class="mono">12h 34m</span></div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
     </div>
+
+    <!-- ── BOTTOM DOCK ── -->
+    <footer class="bottom-dock-container">
+      <div class="dock glass-panel">
+        <div class="dock-icon"><i class="fa-solid fa-house"></i></div>
+        <div class="dock-icon"><i class="fa-regular fa-folder"></i></div>
+        <div class="dock-icon"><i class="fa-solid fa-code"></i></div>
+        <div class="dock-icon"><i class="fa-solid fa-terminal"></i></div>
+        <div class="dock-icon"><i class="fa-solid fa-globe"></i></div>
+        <div class="dock-icon"><i class="fa-solid fa-file-lines"></i></div>
+        <div class="dock-icon"><i class="fa-solid fa-music"></i></div>
+        <div class="dock-icon"><i class="fa-solid fa-gear"></i></div>
+        <div class="dock-divider"></div>
+        <div class="dock-icon add-btn"><i class="fa-solid fa-plus"></i></div>
+      </div>
+    </footer>
   </div>
-
-  <!-- Scanline overlay -->
-  <div class="scanlines"></div>
-  <div class="vignette"></div>
-
-  <!-- Corner decorations -->
-  <div class="corner top-left"></div>
-  <div class="corner top-right"></div>
-  <div class="corner bot-left"></div>
-  <div class="corner bot-right"></div>
-
-  <!-- LEFT PANEL -->
-  <aside class="panel panel-left">
-    <div class="panel-header blink-slow">◈ SYSTEM STATUS</div>
-
-    <div class="stat-block">
-      <span class="label">CORE TEMP</span>
-      <div class="bar-wrap">
-        <div class="bar" id="bar-temp" style="width:72%"></div>
-      </div>
-      <span class="value" id="val-temp">72°C</span>
-    </div>
-
-    <div class="stat-block">
-      <span class="label">MEMORY</span>
-      <div class="bar-wrap">
-        <div class="bar amber" id="bar-mem" style="width:58%"></div>
-      </div>
-      <span class="value" id="val-mem">58%</span>
-    </div>
-
-    <div class="stat-block">
-      <span class="label">CPU LOAD</span>
-      <div class="bar-wrap">
-        <div class="bar cyan" id="bar-cpu" style="width:41%"></div>
-      </div>
-      <span class="value" id="val-cpu">41%</span>
-    </div>
-
-    <div class="stat-block">
-      <span class="label">NEURAL NET</span>
-      <div class="bar-wrap">
-        <div class="bar green" id="bar-net" style="width:89%"></div>
-      </div>
-      <span class="value" id="val-net">89%</span>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="panel-header">◈ AUDIO FEED</div>
-    <canvas id="waveCanvas" width="180" height="60"></canvas>
-
-    <div class="divider"></div>
-
-    <div class="data-list">
-      <div class="data-row blink-fast"><span class="dot red"></span> THREAT SCAN: CLEAR</div>
-      <div class="data-row"><span class="dot cyan"></span> VOICE: ACTIVE</div>
-      <div class="data-row blink-med"><span class="dot amber"></span> UPLINK: SYNCING</div>
-      <div class="data-row" id="aiEngineRow"><span class="dot green"></span> AI ENGINE: ONLINE</div>
-    </div>
-
-    <div class="divider"></div>
-    <div class="panel-header">◈ AI INTEL FEED <span id="newsBadgeLeft" class="news-badge">OFFLINE</span></div>
-    <div class="news-ticker-left" id="newsTickerLeft"></div>
-  </aside>
-
-  <!-- CENTER HUD -->
-  <main class="hud-center">
-    <!-- Rotating rings -->
-    <div class="ring-container">
-      <canvas id="ringCanvas" width="520" height="520"></canvas>
-
-      <!-- Female AI Robot in center instead of plain orb -->
-      <div class="orb-wrap">
-        <div class="orb-outer"></div>
-        <div class="orb-mid"></div>
-        <div class="robot-frame">
-          <img id="navixRobot" src="navix_robot.png" alt="NAVIX AI" class="robot-img" />
-          <div class="robot-scan"></div>
-        </div>
-      </div>
-
-      <!-- Status label below robot -->
-      <div class="orb-status" id="orbStatus">◈ ONLINE</div>
-    </div>
-
-    <!-- ── Q&A CONVERSATION PANEL ── -->
-    <div class="qa-panel" id="qaPanel">
-      <div class="qa-header">
-        <span class="qa-icon">◈</span>
-        <span class="qa-title">NAVIX RESPONSE</span>
-        <span class="qa-badge" id="qaBadge">READY</span>
-      </div>
-
-      <!-- Last question -->
-      <div class="qa-question" id="qaQuestion">
-        <span class="qa-label">YOU ASKED</span>
-        <span class="qa-text" id="qaQuestionText">Waiting for voice input…</span>
-      </div>
-
-      <!-- NAVIX answer -->
-      <div class="qa-answer" id="qaAnswer">
-        <span class="qa-label cyan-text">NAVIX</span>
-        <span class="qa-text cyan-text" id="qaAnswerText">Say "Naveen" to activate the assistant.</span>
-      </div>
-
-      <!-- Recommendations -->
-      <div class="qa-recs" id="qaRecs">
-        <div class="qa-rec-label">◈ RECOMMENDATIONS</div>
-        <div class="qa-rec-list" id="qaRecList">
-          <span class="qa-rec-item">Try: "What's the weather today?"</span>
-          <span class="qa-rec-item">Try: "Summarize my notes"</span>
-          <span class="qa-rec-item">Try: "Open Chrome and search for AI news"</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Bottom data strip -->
-    <div class="bottom-strip">
-      <div class="strip-item"><span class="amber-text blink-slow">FREQ</span><br /><span id="freq-val">2.4 GHz</span>
-      </div>
-      <div class="strip-item"><span class="amber-text">LATENCY</span><br /><span id="lat-val">12ms</span></div>
-      <div class="strip-item"><span class="amber-text">PACKETS</span><br /><span id="pkt-val">4,821</span></div>
-      <div class="strip-item"><span class="amber-text blink-med">MODE</span><br /><span id="mode-val">ACTIVE</span>
-      </div>
-      <div class="strip-item"><span class="amber-text">SESSION</span><br /><span id="session-val">00:00:00</span></div>
-    </div>
-  </main>
-
-
-  <!-- RIGHT PANEL -->
-  <aside class="panel panel-right">
-    <div class="panel-header blink-slow">◈ INTELLIGENCE CORE</div>
-
-    <div class="metric-grid">
-      <div class="metric">
-        <div class="metric-val cyan-text" id="iq-val">98.4</div>
-        <div class="metric-lbl">IQ SCORE</div>
-      </div>
-      <div class="metric">
-        <div class="metric-val amber-text" id="conf-val">96%</div>
-        <div class="metric-lbl">CONFIDENCE</div>
-      </div>
-      <div class="metric">
-        <div class="metric-val green-text" id="lang-val">12</div>
-        <div class="metric-lbl">LANGUAGES</div>
-      </div>
-      <div class="metric">
-        <div class="metric-val red-text blink-fast" id="alert-val">0</div>
-        <div class="metric-lbl">ALERTS</div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="panel-header">◈ RECENT EVENTS</div>
-    <div class="log-feed" id="logFeed" style="max-height:72px">
-      <div class="log-entry"><span class="log-time">19:43:01</span> Voice input detected</div>
-      <div class="log-entry"><span class="log-time">19:43:04</span> Graph traversal: OK</div>
-      <div class="log-entry"><span class="log-time">19:43:08</span> Memory write: 3 nodes</div>
-      <div class="log-entry"><span class="log-time">19:43:15</span> Response generated</div>
-      <div class="log-entry"><span class="log-time">19:43:22</span> Persona: NAVIX active</div>
-    </div>
-
-    <div class="divider"></div>
-    <div class="panel-header">◈ AI NEWS <span id="newsBadgeRight" class="news-badge">OFFLINE</span></div>
-    <div class="news-feed-right" id="newsTickerRight"></div>
-
-    <div class="divider"></div>
-
-    <div class="panel-header">◈ LOCATION</div>
-    <div class="location-box">
-      <div class="loc-row"><span class="label">LAT</span><span class="cyan-text" id="lat">13.0827° N</span></div>
-      <div class="loc-row"><span class="label">LON</span><span class="cyan-text" id="lon">80.2707° E</span></div>
-      <div class="loc-row"><span class="label">NODE</span><span class="amber-text blink-med">NAVIX-PRIME</span></div>
-    </div>
-  </aside>
-
-  <!-- TOP BAR -->
-  <header class="top-bar">
-    <div class="top-left-info">
-      <span class="title-text">N A V I X</span>
-      <span class="sub-text">AGI INTERFACE v3.0</span>
-    </div>
-    <div class="top-center">
-      <span class="amber-text blink-slow">▮▮▮</span>
-      <span id="clock" class="clock-text">--:--:--</span>
-      <span class="amber-text blink-slow">▮▮▮</span>
-    </div>
-    <div class="top-right-info">
-      <span class="sub-text">SECURE CHANNEL</span>
-      <span class="cyan-text blink-fast">● LIVE</span>
-    </div>
-  </header>
-
   <script src="mode.js"></script>
   <script src="pin.js"></script>
   <script src="news.js"></script>
   <script src="qa.js"></script>
   <script src="hud.js"></script>
+  <script src="whatsapp.js"></script>
 </body>
-
 </html>
