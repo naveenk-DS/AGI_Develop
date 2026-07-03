@@ -1,15 +1,16 @@
 import re
 from loguru import logger
-from navix.services.desktop.pc_control import (
-    click, right_click, double_click,
-    type_text, press_key, hotkey,
-    scroll, take_screenshot,
-    minimize_window, maximize_window, close_window,
-    switch_window, show_desktop, lock_screen,
-    volume_up, volume_down, volume_mute,
-    copy, paste, undo, select_all, save_file,
-    open_new_tab_keyboard, close_tab_keyboard
-)
+
+# New localized imports
+from navix.desktop.mouse.controller import click, right_click, double_click, scroll
+from navix.desktop.keyboard.typing import type_text, press_key
+from navix.desktop.keyboard.shortcuts import hotkey
+from navix.desktop.screen.screenshot import take_screenshot
+from navix.desktop.windows.manager import minimize_window, maximize_window, close_window, switch_window, show_desktop, lock_screen
+from navix.desktop.volume.controller import volume_up, volume_down, volume_mute
+from navix.desktop.clipboard.copy import copy, select_all
+from navix.desktop.clipboard.paste import paste
+from navix.desktop.automation.macros import undo, save_file, open_new_tab_keyboard, close_tab_keyboard
 
 def parse_pc_command(text: str) -> dict:
     t = text.lower().strip()

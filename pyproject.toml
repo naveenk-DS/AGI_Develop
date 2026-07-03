@@ -64,6 +64,7 @@ dependencies = [
     "soundcard>=0.4.6",
     "langgraph-checkpoint-sqlite>=3.1.0",
     "aiosqlite>=0.22.1",
+    "paddleocr>=2.10.0",
 ]
 
 [dependency-groups]
