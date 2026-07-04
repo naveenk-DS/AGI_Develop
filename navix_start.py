@@ -87,5 +87,6 @@ if __name__ == "__main__":
             tray.run()
             break
         except KeyboardInterrupt:
-            logger.warning("Spurious KeyboardInterrupt caught in tray — resuming")
-            continue
+            logger.info("KeyboardInterrupt caught — shutting down NAVIX")
+            import sys
+            sys.exit(0)

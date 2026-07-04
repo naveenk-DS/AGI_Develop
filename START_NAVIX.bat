@@ -5,13 +5,13 @@ echo Starting NAVIX...
 start "Qdrant" /MIN cmd /c "cd /d F:\naveen\qdrant_bin && qdrant.exe --config-path F:\naveen\AGI_Start\config\qdrant_config.yaml"
 
 :: Wait for Qdrant
-timeout /t 5 /nobreak > nul
+ping 127.0.0.1 -n 6 > nul
 
 :: Start FastAPI in background
-start "FastAPI" /MIN cmd /c "cd /d F:\naveen\AGI_Start && uv run uvicorn app.main:app --host 127.0.0.1 --port 8001"
+start "FastAPI" /MIN cmd /c "cd /d F:\naveen\AGI_Start && uv run uvicorn navix.main:app --host 127.0.0.1 --port 8001"
 
 :: Wait for FastAPI
-timeout /t 8 /nobreak > nul
+ping 127.0.0.1 -n 9 > nul
 
 :: Start NAVIX voice
 cd /d F:\naveen\AGI_Start

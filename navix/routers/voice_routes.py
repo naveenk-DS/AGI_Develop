@@ -2,6 +2,7 @@ from navix.services.voice.language_config import USER_PROFILE, SUPPORTED_LANGUAG
 from fastapi import APIRouter
 from pydantic import BaseModel
 from loguru import logger
+from navix.services.voice.speaker import speak
 
 class LanguageSwitch(BaseModel):
     language: str
@@ -19,7 +20,7 @@ class BrowserRequest(BaseModel):
 
 router = APIRouter(prefix="/voice", tags=['voice'])
 
-@router.get@router.get("/status")
+@router.get("/status")
 async def navix_status():
     return {
         "status": "online",
@@ -28,13 +29,13 @@ async def navix_status():
         "supported_languages": USER_PROFILE["languages"]
     }
 
-@router.get@router.get("/greeting")
+@router.get("/greeting")
 async def get_greeting_endpoint():
     from navix.services.voice.NAVIX_AI import get_greeting
     greeting = get_greeting()
     return {"greeting": greeting}
 
-@router.post@router.post("/language")
+@router.post("/language")
 async def switch_language(body: LanguageSwitch):
     if body.language not in SUPPORTED_LANGUAGES:
         return {"error": f"Unsupported. Choose from: {list(SUPPORTED_LANGUAGES.keys())}"}
@@ -44,14 +45,14 @@ async def switch_language(body: LanguageSwitch):
 
 # ── Voice ─────────────────────────────────────────────────────────────────────
 
-@router.post@router.post("/speak")
+@router.post("/speak")
 async def speak_text(body: SpeakRequest):
     import asyncio
     loop = asyncio.get_event_loop()
     loop.run_in_executor(None, speak, body.text, body.language)
     return {"status": "speaking", "text": body.text}
 
-@router.post@router.post("/test-voice")
+@router.post("/test-voice")
 async def test_voice():
     import asyncio
     loop = asyncio.get_event_loop()
@@ -60,7 +61,7 @@ async def test_voice():
 
 # ── Browser ───────────────────────────────────────────────────────────────────
 
-@router.get@router.get("/voice/samples")
+@router.get("/voice/samples")
 async def voice_samples():
     from pathlib import Path
     folder = Path("F:/naveen/AGI_Start/data/voice_samples")

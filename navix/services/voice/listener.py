@@ -46,8 +46,8 @@ VOICE_DATA_DIR.mkdir(parents=True, exist_ok=True)
 # ── Microphone selection (soundcard / WASAPI) ─────────────────────────────────
 _mic = None
 
-_SKIP_LOOPBACK = ['stereo mix', 'loopback', 'what u hear']
-_MIC_TEST_TIMEOUT = 2.0   # seconds — skip any mic that hangs longer than this
+_SKIP_LOOPBACK = ['stereo mix', 'loopback', 'what u hear', 'camo']
+_MIC_TEST_TIMEOUT = 5.0   # seconds — increased to 5s to give Bluetooth headsets time to wake up
 
 
 def _test_mic_with_timeout(m, timeout: float = _MIC_TEST_TIMEOUT) -> bool:
@@ -183,14 +183,9 @@ def record_until_silence(
     silence_duration: float  = 1.5,
 ) -> np.ndarray:
     """
-    Record from the microphone using soundcard (Windows WASAPI).
+    Record from the microphone using sounddevice.
     Stops when the user goes silent. Returns a 1-D float32 numpy array.
     """
-    mic = _get_mic()
-    if mic is None:
-        logger.error("record_until_silence: no mic available!")
-        return np.array([], dtype=np.float32)
-
     chunk_dur            = 0.3            # seconds per chunk
     chunk_size           = int(chunk_dur * SAMPLE_RATE)
     max_chunks           = int(max_duration / chunk_dur)
@@ -205,11 +200,12 @@ def record_until_silence(
     _log_every       = int(3 / chunk_dur)
 
     try:
-        with mic.recorder(samplerate=SAMPLE_RATE, channels=1, blocksize=chunk_size) as rec:
+        import sounddevice as sd
+        with sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype='float32', device=DEVICE_ID) as stream:
             logger.debug(f"Mic open — listening... (threshold={silence_threshold})")
             while total_chunks < max_chunks:
-                chunk = rec.record(numframes=chunk_size)          # shape (N, 1)
-                audio_chunk = chunk[:, 0].astype(np.float32)      # flatten to 1-D
+                chunk, overflowed = stream.read(chunk_size)
+                audio_chunk = chunk[:, 0].copy()
 
                 all_audio.append(audio_chunk)
                 total_chunks += 1
@@ -233,6 +229,8 @@ def record_until_silence(
 
     except Exception as e:
         logger.error(f"Recording error: {e}")
+        import time
+        time.sleep(2)
         return np.array([], dtype=np.float32)
 
     if not speaking_started or not all_audio:

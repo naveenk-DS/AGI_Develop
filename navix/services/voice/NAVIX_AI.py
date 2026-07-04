@@ -1,7 +1,7 @@
 """
 NAVIX_AI.py – Core voice conversation engine.
 """
-from navix.services import continual_learning
+from navix.services.ai import continual_learning
 import asyncio
 import re
 import threading
@@ -94,6 +94,10 @@ def get_period() -> str:
     if 12 <= hour < 17: return "afternoon"
     if 17 <= hour < 21: return "evening"
     return "night"
+
+def get_greeting() -> str:
+    """Return a simple time-based greeting for the HUD."""
+    return f"Good {get_period()}, Naveen!"
 
 
 async def navix_session():
@@ -340,7 +344,7 @@ async def handle_wake_word(text: str):
         logger.info(f"Intent: {intent}")
 
         if intent == "pc":
-            from navix.services.desktop.pc_command_parser import execute_pc_command
+            from navix.desktop.automation.actions import execute_pc_command
             result = await execute_pc_command(command)
             response = await ask_model(
                 f"You just did: {result}. Confirm casually. 1 sentence.",
@@ -366,7 +370,7 @@ async def handle_wake_word(text: str):
             continue
 
         elif intent == "vision":
-            from navix.services.vision.screen_vision import describe_screen
+            from navix.desktop.vision.screen_reader import describe_screen
             set_tray_state("talking")
             result = await describe_screen(command)
             push_hud(answer=result, state="speaking")

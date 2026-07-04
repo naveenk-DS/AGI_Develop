@@ -11,7 +11,7 @@ class BrowserRequest(BaseModel):
 
 router = APIRouter(prefix="/browser", tags=['browser'])
 
-@router.post@router.post("/browser/open")
+@router.post("/browser/open")
 async def browser_open(body: BrowserRequest):
     try:
         from navix.services.browser.browser import open_url
@@ -21,7 +21,7 @@ async def browser_open(body: BrowserRequest):
         logger.error(f"Browser open error: {e}")
         return {"status": "error", "result": str(e)}
 
-@router.post@router.post("/browser/youtube")
+@router.post("/browser/youtube")
 async def browser_youtube(body: BrowserRequest):
     try:
         from navix.services.browser.browser import open_youtube
@@ -32,7 +32,7 @@ async def browser_youtube(body: BrowserRequest):
         logger.error(f"YouTube FULL error: {traceback.format_exc()}")
         return {"status": "error", "result": str(e)}
 
-@router.post@router.post("/browser/search")
+@router.post("/browser/search")
 async def browser_search(body: BrowserRequest):
     try:
         from navix.services.browser.browser import search_google
@@ -42,7 +42,7 @@ async def browser_search(body: BrowserRequest):
         logger.error(f"Search error: {e}")
         return {"status": "error", "result": str(e)}
 
-@router.post@router.post("/browser/command")
+@router.post("/browser/command")
 async def browser_command(body: CommandRequest):
     try:
         from navix.services.ai.command_parser import execute_browser_command
@@ -52,7 +52,7 @@ async def browser_command(body: CommandRequest):
         logger.error(f"Command error: {e}")
         return {"status": "error", "result": str(e)}
 
-@router.post@router.post("/browser/close")
+@router.post("/browser/close")
 async def browser_close():
     try:
         from navix.services.browser.browser import close_browser
@@ -61,7 +61,7 @@ async def browser_close():
     except Exception as e:
         return {"status": "error", "result": str(e)}
 
-@router.post@router.post("/browser/new-tab")
+@router.post("/browser/new-tab")
 async def browser_new_tab(body: BrowserRequest):
     try:
         from navix.services.browser.browser import open_new_tab
@@ -71,7 +71,7 @@ async def browser_new_tab(body: BrowserRequest):
     except Exception as e:
         return {"status": "error", "result": str(e)}
 
-@router.post@router.post("/browser/new-window")
+@router.post("/browser/new-window")
 async def browser_new_window(body: BrowserRequest):
     try:
         from navix.services.browser.browser import open_new_window
@@ -80,7 +80,7 @@ async def browser_new_window(body: BrowserRequest):
     except Exception as e:
         return {"status": "error", "result": str(e)}
 
-@router.post@router.post("/browser/news")
+@router.post("/browser/news")
 async def browser_news():
     try:
         from navix.services.browser.browser import get_news
@@ -89,7 +89,7 @@ async def browser_news():
     except Exception as e:
         return {"status": "error", "result": str(e)}
 
-@router.post@router.post("/browser/wikipedia")
+@router.post("/browser/wikipedia")
 async def browser_wikipedia(body: BrowserRequest):
     try:
         from navix.services.browser.browser import search_wikipedia
