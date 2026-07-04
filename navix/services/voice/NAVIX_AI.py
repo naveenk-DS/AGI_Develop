@@ -343,38 +343,16 @@ async def handle_wake_word(text: str):
         intent = await classify_intent(command)
         logger.info(f"Intent: {intent}")
 
-        if intent == "pc":
-            from navix.desktop.automation.actions import execute_pc_command
-            result = await execute_pc_command(command)
-            response = await ask_model(
-                f"You just did: {result}. Confirm casually. 1 sentence.",
-                fallback="Done!"
-            )
+        if intent in ["pc", "browser", "vision", "automation"]:
+            from navix.automation.core.controller import execute_autonomous_workflow
+            set_tray_state("working")
+            push_hud(answer="Planning and executing workflow...", state="thinking")
+            
+            response = await execute_autonomous_workflow(command)
+            
             set_tray_state("talking")
             push_hud(answer=response, state="speaking")
             await loop.run_in_executor(None, speak, response)
-            set_tray_state("active")
-            continue
-
-        elif intent == "browser":
-            from navix.services.ai.command_parser import execute_browser_command
-            result = await execute_browser_command(command)
-            response = await ask_model(
-                f"You just did: {result}. Confirm casually. 1 sentence.",
-                fallback="Done!"
-            )
-            set_tray_state("talking")
-            push_hud(answer=response, state="speaking")
-            await loop.run_in_executor(None, speak, response)
-            set_tray_state("active")
-            continue
-
-        elif intent == "vision":
-            from navix.desktop.vision.screen_reader import describe_screen
-            set_tray_state("talking")
-            result = await describe_screen(command)
-            push_hud(answer=result, state="speaking")
-            await loop.run_in_executor(None, speak, result)
             set_tray_state("active")
             continue
 
