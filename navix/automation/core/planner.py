@@ -1,27 +1,46 @@
 import json
 from loguru import logger
-from navix.services.ai.ollama import ask_model
+from core.llm import get_llm
+from langchain_core.messages import SystemMessage
+from navix.automation.tools import TOOL_REGISTRY
 
 async def decompose_goal(goal: str) -> list[dict]:
     """
     Takes a high-level user goal and uses the LLM to break it down into sequential tasks.
     Returns a list of task dictionaries.
     """
+    available_tools = "\n".join([f"- {name}: {info['description']}" for name, info in TOOL_REGISTRY.items()])
+    
     prompt = f"""
-You are the NAVIX Automation Planner.
+You are the NAVIX Automation Planner, an intelligent executive AI assistant.
 The user has requested the following goal: "{goal}"
+
+CORE PRINCIPLES:
+1. Screen Understanding First: You must know what is visible before taking action.
+2. Automation Priority: Choose the best method in this order:
+   - Native API (Preferred, e.g., Gmail API)
+   - Application Accessibility (e.g., UI Automation)
+   - Browser Automation (e.g., Playwright)
+   - Desktop Automation (Keyboard/Mouse)
+   - Vision Automation (Screen capture/OCR, only if necessary)
+3. Safety First: You MUST flag any irreversible actions (sending messages, deleting files, payments) as requiring user approval.
+
+AVAILABLE TOOLS:
+{available_tools}
 
 Break this goal down into a sequence of atomic tasks. 
 Each task should have:
 1. "step": integer
-2. "action": string (the tool or domain to use, e.g., 'browser', 'whatsapp', 'email', 'desktop', 'vision')
+2. "action": string (MUST be the exact name of one of the AVAILABLE TOOLS above)
 3. "description": string (what exactly to do)
 4. "requires_approval": boolean (true if this sends a message, makes a payment, or submits data)
 
 Return ONLY a valid JSON array of these tasks. No markdown formatting or explanations.
 """
     try:
-        response = await ask_model(prompt, fallback="[]")
+        llm = get_llm(temperature=0.1)
+        result = await llm.ainvoke([SystemMessage(content=prompt)])
+        response = result.content
         # Try to parse the JSON array
         # Clean up possible markdown code blocks if the LLM adds them
         clean_json = response.replace("```json", "").replace("```", "").strip()

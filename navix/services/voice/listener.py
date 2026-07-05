@@ -17,28 +17,12 @@ from navix.services.voice.language_config import USER_PROFILE
 SAMPLE_RATE = 16000
 CHANNELS = 1
 
-# Auto detect working microphone
-def find_working_device() -> int:
-    devices = sd.query_devices()
-    for i, d in enumerate(devices):
-        if d["max_input_channels"] > 0:
-            try:
-                audio = sd.rec(
-                    int(0.5 * SAMPLE_RATE),
-                    samplerate=SAMPLE_RATE,
-                    channels=1,
-                    dtype="float32",
-                    device=i
-                )
-                sd.wait()
-                logger.info(f"Mic found: device {i} — {d['name']}")
-                return i
-            except:
-                continue
-    logger.error("No working microphone found!")
-    return 0
-
-DEVICE_ID = find_working_device()
+def get_working_device() -> int:
+    try:
+        # sd.default.device returns (input, output) default device IDs
+        return sd.default.device[0] 
+    except:
+        return 0
 # ── Voice data collection folder ──────────────────────────────────────────────
 VOICE_DATA_DIR = Path("F:/naveen/AGI_Start/data/voice_samples")
 VOICE_DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -200,12 +184,16 @@ def record_until_silence(
     _log_every       = int(3 / chunk_dur)
 
     try:
-        import sounddevice as sd
-        with sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype='float32', device=DEVICE_ID) as stream:
+        mic = _get_mic()
+        if not mic:
+            logger.error("No mic found for record_until_silence")
+            return np.array([], dtype=np.float32)
+            
+        with mic.recorder(samplerate=SAMPLE_RATE, channels=1, blocksize=chunk_size) as rec:
             logger.debug(f"Mic open — listening... (threshold={silence_threshold})")
             while total_chunks < max_chunks:
-                chunk, overflowed = stream.read(chunk_size)
-                audio_chunk = chunk[:, 0].copy()
+                chunk = rec.record(numframes=chunk_size)
+                audio_chunk = chunk[:, 0].astype(np.float32)
 
                 all_audio.append(audio_chunk)
                 total_chunks += 1

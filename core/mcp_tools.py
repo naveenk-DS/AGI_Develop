@@ -106,19 +106,19 @@ def register_all_tools():
 
     # PC tools
     async def tool_screenshot() -> str:
-        from navix.services.vision.screen_vision import what_is_on_screen
+        from navix.desktop.vision.screen_reader import what_is_on_screen
         return await what_is_on_screen()
 
     async def tool_type_text(text: str) -> str:
-        from navix.services.desktop.pc_control import type_text
+        from navix.desktop.keyboard.typing import type_text
         return type_text(text)
 
     async def tool_volume_up() -> str:
-        from navix.services.desktop.pc_control import volume_up
+        from navix.desktop.volume.controller import volume_up
         return volume_up()
 
     async def tool_volume_down() -> str:
-        from navix.services.desktop.pc_control import volume_down
+        from navix.desktop.volume.controller import volume_down
         return volume_down()
 
     # Knowledge tools
@@ -149,6 +149,15 @@ def register_all_tools():
         plan = await get_todays_plan()
         return plan or "No plan set for today"
 
+    # WhatsApp tools
+    async def tool_whatsapp_send(contact: str, message: str) -> str:
+        from navix.automation.tools.communication_tools import whatsapp_send_message
+        return await whatsapp_send_message(contact, message)
+
+    async def tool_whatsapp_read() -> str:
+        from navix.automation.tools.communication_tools import whatsapp_read_unread
+        return str(await whatsapp_read_unread())
+
     # Register all
     register_tool("open_youtube",    "Open YouTube and search for videos", tool_open_youtube, {"query": "search term"})
     register_tool("search_google",   "Search Google for information", tool_search_google, {"query": "search term"})
@@ -165,5 +174,7 @@ def register_all_tools():
     register_tool("world_insight",   "Get personalized daily insight", tool_world_insight)
     register_tool("remember",        "Remember something important", tool_remember, {"text": "thing to remember"})
     register_tool("planner_today",   "Get today's plan", tool_planner_today)
+    register_tool("whatsapp_send",   "Send a WhatsApp message to a contact", tool_whatsapp_send, {"contact": "exact contact name", "message": "message text"})
+    register_tool("whatsapp_read",   "Read unread WhatsApp messages", tool_whatsapp_read)
 
     logger.info(f"MCP: {len(_tools)} tools registered")

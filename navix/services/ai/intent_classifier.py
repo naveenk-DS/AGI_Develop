@@ -6,6 +6,7 @@ INTENT_MODEL = "qwen2.5:7b"
 
 # Fast keyword shortcuts — avoid LLM call for obvious cases
 _KEYWORD_INTENTS = {
+    "automation": ["whatsapp", "email", "message", "remind", "schedule", "automation"],
     "browser":  ["open ", "go to ", "search ", "youtube", "google", "play ", "news", "wikipedia"],
     "pc":       ["click ", "type ", "press ", "volume", "screenshot", "minimize", "maximize", "scroll"],
     "vision":   ["what's on screen", "what is on screen", "read screen", "describe screen", "what do you see"],
@@ -15,11 +16,13 @@ _KEYWORD_INTENTS = {
 INTENT_PROMPT = """Classify the user's message into exactly one category. Reply with only the category word, nothing else.
 
 Categories:
+- automation: user wants to automate a task, such as reading/sending WhatsApp messages, emails, or reminders
 - browser: user wants to open a website, search the web, play something on YouTube, check news
 - pc: user wants to control the computer — click, type, screenshot, volume, open an app, file manager
-- rag: ONLY use this if the user says words like "the document", "the file", "what I uploaded", "the PDF", or "what I gave you" — referring to a specific file they previously provided- vision: user asks what is on screen, what they are looking at, or to read/describe the current screen
+- rag: ONLY use this if the user says words like "the document", "the file", "what I uploaded", "the PDF", or "what I gave you" — referring to a specific file they previously provided
+- vision: user asks what is on screen, what they are looking at, or to read/describe the current screen
 - code: user wants you to write, create, or generate actual code or a script
-- chat: the default for almost everything else, including any question starting with "what is", "what are", "explain", "describe", "tell me about", or "how does" — these are general knowledge questions, NOT document questions, unless they also mention a specific file/document
+- chat: the default for almost everything else, including general conversation and questions
 Message: "{message}"
 
 Category:"""
@@ -45,7 +48,7 @@ async def classify_intent(message: str) -> str:
             })
             if r.status_code == 200:
                 label = r.json().get("response", "").strip().lower()
-                for valid in ("browser", "pc", "rag", "vision", "code", "chat"):
+                for valid in ("automation", "browser", "pc", "rag", "vision", "code", "chat"):
                     if valid in label:
                         logger.debug(f"Intent (LLM): {valid}")
                         return valid

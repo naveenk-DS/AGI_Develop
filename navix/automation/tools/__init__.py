@@ -27,3 +27,8 @@ def get_tool(name: str) -> Callable | None:
     if tool_info:
         return tool_info["func"]
     return None
+
+# Import all tool modules to populate the registry automatically
+from . import browser_tools
+from . import communication_tools
+from . import desktop_tools
