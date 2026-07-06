@@ -116,14 +116,11 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(start_health_monitor(interval=60))
     logger.info("Health monitor started")
 
-    from navix.routers.whatsapp import start_whatsapp_background, stop_whatsapp_background
-    asyncio.create_task(start_whatsapp_background())
-    logger.info("WhatsApp background service started")
+
 
     logger.info("MyAIProduct API started")
     yield
 
-    await stop_whatsapp_background()
     scheduler.shutdown()
     from navix.services.utilities.watcher import stop_event
     stop_event.set()

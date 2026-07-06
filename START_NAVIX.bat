@@ -7,11 +7,7 @@ start "Qdrant" /MIN cmd /c "cd /d F:\naveen\qdrant_bin && qdrant.exe --config-pa
 :: Wait for Qdrant
 ping 127.0.0.1 -n 6 > nul
 
-:: Start FastAPI in background
-start "FastAPI" /MIN cmd /c "cd /d F:\naveen\AGI_Start && uv run uvicorn navix.main:app --host 127.0.0.1 --port 8001"
 
-:: Wait for FastAPI
-ping 127.0.0.1 -n 9 > nul
 
 :: Start NAVIX voice
 cd /d F:\naveen\AGI_Start

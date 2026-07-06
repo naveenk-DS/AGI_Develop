@@ -20,6 +20,12 @@ def parse_pc_command(text: str) -> dict:
     if type_match:
         return {"action": "type", "text": type_match.group(1)}
 
+    # Open App
+    open_match = re.search(r"open\s+(.+)", t)
+    if open_match:
+        app_name = open_match.group(1).replace("client", "").replace("if not already open", "").replace("any", "").replace("available on the system", "").replace("managers", "manager").strip()
+        return {"action": "open", "app": app_name}
+
     # Press key
     key_map = {
         "enter": "enter", "return": "enter",
@@ -147,5 +153,26 @@ async def execute_pc_command(text: str) -> str:
         return right_click()
     elif cmd["action"] == "double_click":
         return double_click()
+    elif cmd["action"] == "open":
+        app = cmd["app"]
+        import os
+        try:
+            # Map common names to executable commands
+            app_map = {
+                "mail": "explorer mailto:",
+                "email": "explorer mailto:",
+                "file manager": "explorer",
+                "explorer": "explorer",
+                "calculator": "calc",
+                "notepad": "notepad",
+                "browser": "start chrome",
+                "whatsapp": "start whatsapp:"
+            }
+            exec_cmd = app_map.get(app.lower(), f"start {app}")
+            os.system(exec_cmd)
+            return f"Attempted to open {app}"
+        except Exception as e:
+            logger.error(f"Failed to open {app}: {e}")
+            return f"Failed to open {app}: {e}"
 
     return None

@@ -9,8 +9,8 @@ from navix.services.whatsapp.parser import WhatsAppParser
 async def whatsapp_send_message(contact: str, message: str):
     try:
         from navix.routers.whatsapp import _whatsapp_client
-        if not _whatsapp_client:
-            return "WhatsApp client is not running. Please ensure the background service is active."
+        if not _whatsapp_client or not _whatsapp_client.sender:
+            return "WhatsApp client or sender module is not initialized. Please ensure the background service is active and fully started."
         success = await _whatsapp_client.send_message(contact, message)
         return "Message sent successfully." if success else f"Failed to send message to {contact}."
     except Exception as e:
@@ -24,8 +24,8 @@ async def whatsapp_send_message(contact: str, message: str):
 async def whatsapp_read_unread(query: str = ""):
     try:
         from navix.routers.whatsapp import _whatsapp_client
-        if not _whatsapp_client:
-            return "WhatsApp client is not running. Please ensure the background service is active."
+        if not _whatsapp_client or not _whatsapp_client.reader:
+            return "WhatsApp client or reader module is not initialized. Please ensure the background service is active and fully started."
             
         unread_chats = await _whatsapp_client.reader.get_unread_chats()
         if not unread_chats:

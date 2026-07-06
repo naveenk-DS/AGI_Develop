@@ -42,6 +42,11 @@ async def main():
     global _main_loop
     _main_loop = asyncio.get_running_loop()
     logger.info("=== NAVIX Starting ===")
+    
+    from navix.routers.whatsapp import start_whatsapp_background
+    asyncio.create_task(start_whatsapp_background())
+    logger.info("WhatsApp background service started in main thread")
+    
     set_tray_state("sleeping")
     try:
         await navix_session()
