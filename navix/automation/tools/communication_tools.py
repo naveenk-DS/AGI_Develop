@@ -8,9 +8,14 @@ from navix.services.whatsapp.parser import WhatsAppParser
 )
 async def whatsapp_send_message(contact: str, message: str):
     try:
-        from navix.routers.whatsapp import _whatsapp_client
-        if not _whatsapp_client or not _whatsapp_client.sender:
-            return "WhatsApp client or sender module is not initialized. Please ensure the background service is active and fully started."
+        from navix.routers import whatsapp as wa_router
+        if not wa_router._whatsapp_client or not getattr(wa_router._whatsapp_client, 'sender', None):
+            logger.info("Initializing WhatsApp client...")
+            await wa_router.start_whatsapp_background()
+            
+        _whatsapp_client = wa_router._whatsapp_client
+        if not _whatsapp_client or not getattr(_whatsapp_client, 'sender', None):
+            return "Failed to initialize WhatsApp client."
         success = await _whatsapp_client.send_message(contact, message)
         return "Message sent successfully." if success else f"Failed to send message to {contact}."
     except Exception as e:
@@ -23,9 +28,14 @@ async def whatsapp_send_message(contact: str, message: str):
 )
 async def whatsapp_read_unread(query: str = ""):
     try:
-        from navix.routers.whatsapp import _whatsapp_client
-        if not _whatsapp_client or not _whatsapp_client.reader:
-            return "WhatsApp client or reader module is not initialized. Please ensure the background service is active and fully started."
+        from navix.routers import whatsapp as wa_router
+        if not wa_router._whatsapp_client or not getattr(wa_router._whatsapp_client, 'reader', None):
+            logger.info("Initializing WhatsApp client...")
+            await wa_router.start_whatsapp_background()
+            
+        _whatsapp_client = wa_router._whatsapp_client
+        if not _whatsapp_client or not getattr(_whatsapp_client, 'reader', None):
+            return "Failed to initialize WhatsApp client."
             
         unread_chats = await _whatsapp_client.reader.get_unread_chats()
         if not unread_chats:

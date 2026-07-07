@@ -184,6 +184,21 @@ async def chat(body: dict):
     reply = await ollama_chat(body.get("message", ""))
     return {"reply": reply}
 
+@app.post("/shutdown")
+async def shutdown():
+    import os
+    import threading
+    import time
+    from loguru import logger
+    logger.warning("Shutdown command received from UI. Exiting...")
+    
+    def kill_it():
+        time.sleep(1)
+        os._exit(0)
+        
+    threading.Thread(target=kill_it, daemon=True).start()
+    return {"status": "shutting down"}
+
 
 
 

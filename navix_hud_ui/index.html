@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,9 +9,12 @@
   <link rel="stylesheet" href="css/layout.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
+
 <body>
   <!-- ── Background Effects ── -->
   <div class="bg-layer">
@@ -20,7 +24,7 @@
   </div>
 
   <div class="os-layout">
-    
+
     <!-- ── TOP BAR ── -->
     <header class="top-bar glass-panel">
       <div class="top-left">
@@ -55,11 +59,12 @@
     </header>
 
     <div class="main-body">
-      
+
       <!-- ── LEFT SIDEBAR ── -->
       <aside class="left-sidebar glass-panel">
         <nav class="nav-menu">
-          <a class="nav-item active"><i class="fa-solid fa-house"></i> Home</a>
+          <a class="nav-item active" href="index.html"><i class="fa-solid fa-house"></i> Home</a>
+          <a class="nav-item" href="voice-hub.html"><i class="fa-solid fa-microphone-lines"></i> Voice Hub</a>
           <a class="nav-item"><i class="fa-solid fa-brain"></i> Assistant</a>
           <a class="nav-item"><i class="fa-regular fa-folder"></i> Files</a>
           <a class="nav-item"><i class="fa-solid fa-globe"></i> Browser</a>
@@ -76,17 +81,23 @@
           <div class="stat-row">
             <span>CPU Usage</span> <span class="mono">28%</span>
           </div>
-          <div class="progress-bar"><div class="fill cyan" style="width: 28%"></div></div>
-          
+          <div class="progress-bar">
+            <div class="fill cyan" style="width: 28%"></div>
+          </div>
+
           <div class="stat-row">
             <span>GPU Usage</span> <span class="mono">63%</span>
           </div>
-          <div class="progress-bar"><div class="fill purple" style="width: 63%"></div></div>
-          
+          <div class="progress-bar">
+            <div class="fill purple" style="width: 63%"></div>
+          </div>
+
           <div class="stat-row">
             <span>RAM Usage</span> <span class="mono">62%</span>
           </div>
-          <div class="progress-bar"><div class="fill emerald" style="width: 62%"></div></div>
+          <div class="progress-bar">
+            <div class="fill emerald" style="width: 62%"></div>
+          </div>
         </div>
       </aside>
 
@@ -98,10 +109,18 @@
         </div>
 
         <div class="quick-actions-row">
-          <div class="action-card"><i class="fa-solid fa-magnifying-glass cyan-text"></i> <div><b>Research</b><span>Search & Summarize</span></div></div>
-          <div class="action-card"><i class="fa-solid fa-code purple-text"></i> <div><b>Code</b><span>Write & Debug</span></div></div>
-          <div class="action-card"><i class="fa-solid fa-robot emerald-text"></i> <div><b>Automate</b><span>Tasks & Workflows</span></div></div>
-          <div class="action-card"><i class="fa-solid fa-chart-line orange-text"></i> <div><b>Analyze</b><span>Data & Insights</span></div></div>
+          <div class="action-card"><i class="fa-solid fa-magnifying-glass cyan-text"></i>
+            <div><b>Research</b><span>Search & Summarize</span></div>
+          </div>
+          <div class="action-card"><i class="fa-solid fa-code purple-text"></i>
+            <div><b>Code</b><span>Write & Debug</span></div>
+          </div>
+          <div class="action-card"><i class="fa-solid fa-robot emerald-text"></i>
+            <div><b>Automate</b><span>Tasks & Workflows</span></div>
+          </div>
+          <div class="action-card"><i class="fa-solid fa-chart-line orange-text"></i>
+            <div><b>Analyze</b><span>Data & Insights</span></div>
+          </div>
         </div>
 
         <div class="core-section">
@@ -130,8 +149,9 @@
 
         <div class="chat-region glass-panel">
           <div class="chat-status">
-            I'm NAVIX, your <b>AI OS</b>.<br/>
-            <span class="emerald-text"><i class="fa-solid fa-circle-dot" style="font-size: 8px;"></i> ONLINE • READY</span>
+            I'm NAVIX, your <b>AI OS</b>.<br />
+            <span class="emerald-text"><i class="fa-solid fa-circle-dot" style="font-size: 8px;"></i> ONLINE •
+              READY</span>
           </div>
           <div class="chat-input-area">
             <i class="fa-solid fa-microphone mic-btn"></i>
@@ -143,17 +163,23 @@
         <div class="workflow-pipeline glass-panel">
           <div class="panel-title" style="text-align: center; margin-bottom: 15px;">END TO END WORKFLOW</div>
           <div class="pipeline">
-            <div class="pipe-node"><i class="fa-solid fa-microphone cyan-text"></i><span>YOU SPEAK</span><small>Wake word</small></div>
+            <div class="pipe-node"><i class="fa-solid fa-microphone cyan-text"></i><span>YOU SPEAK</span><small>Wake
+                word</small></div>
             <i class="fa-solid fa-arrow-right pipe-arrow"></i>
-            <div class="pipe-node"><i class="fa-solid fa-brain purple-text"></i><span>UNDERSTAND</span><small>Intent detection</small></div>
+            <div class="pipe-node"><i class="fa-solid fa-brain purple-text"></i><span>UNDERSTAND</span><small>Intent
+                detection</small></div>
             <i class="fa-solid fa-arrow-right pipe-arrow"></i>
-            <div class="pipe-node"><i class="fa-solid fa-microchip blue-text"></i><span>THINK</span><small>Local LLM</small></div>
+            <div class="pipe-node"><i class="fa-solid fa-microchip blue-text"></i><span>THINK</span><small>Local
+                LLM</small></div>
             <i class="fa-solid fa-arrow-right pipe-arrow"></i>
-            <div class="pipe-node"><i class="fa-solid fa-diagram-project orange-text"></i><span>DECIDE</span><small>Tool selection</small></div>
+            <div class="pipe-node"><i class="fa-solid fa-diagram-project orange-text"></i><span>DECIDE</span><small>Tool
+                selection</small></div>
             <i class="fa-solid fa-arrow-right pipe-arrow"></i>
-            <div class="pipe-node"><i class="fa-solid fa-bolt emerald-text"></i><span>ACT</span><small>Execute tasks</small></div>
+            <div class="pipe-node"><i class="fa-solid fa-bolt emerald-text"></i><span>ACT</span><small>Execute
+                tasks</small></div>
             <i class="fa-solid fa-arrow-right pipe-arrow"></i>
-            <div class="pipe-node"><i class="fa-solid fa-comment-dots purple-text"></i><span>RESPOND</span><small>Voice output</small></div>
+            <div class="pipe-node"><i class="fa-solid fa-comment-dots purple-text"></i><span>RESPOND</span><small>Voice
+                output</small></div>
           </div>
         </div>
       </main>
@@ -162,22 +188,33 @@
       <aside class="right-sidebar glass-panel">
         <div class="future-ready">
           <div class="panel-title">FUTURE READY</div>
-          <div class="fr-item"><i class="fa-solid fa-wifi purple-text"></i> <div><b>Fully Offline</b><span>No Cloud. 100% Private.</span></div></div>
-          <div class="fr-item"><i class="fa-solid fa-puzzle-piece blue-text"></i> <div><b>Self Evolving</b><span>Learns & Improves locally.</span></div></div>
-          <div class="fr-item"><i class="fa-solid fa-eye cyan-text"></i> <div><b>Multi Modal</b><span>Voice • Vision • Text</span></div></div>
-          <div class="fr-item"><i class="fa-solid fa-shield-halved emerald-text"></i> <div><b>Secure by Design</b><span>Data stays with you.</span></div></div>
+          <div class="fr-item"><i class="fa-solid fa-wifi purple-text"></i>
+            <div><b>Fully Offline</b><span>No Cloud. 100% Private.</span></div>
+          </div>
+          <div class="fr-item"><i class="fa-solid fa-puzzle-piece blue-text"></i>
+            <div><b>Self Evolving</b><span>Learns & Improves locally.</span></div>
+          </div>
+          <div class="fr-item"><i class="fa-solid fa-eye cyan-text"></i>
+            <div><b>Multi Modal</b><span>Voice • Vision • Text</span></div>
+          </div>
+          <div class="fr-item"><i class="fa-solid fa-shield-halved emerald-text"></i>
+            <div><b>Secure by Design</b><span>Data stays with you.</span></div>
+          </div>
         </div>
 
         <div class="recent-events">
           <div class="panel-title">RECENT EVENTS</div>
           <div class="event-item">
-            <span class="mono">21:48</span> <i class="fa-solid fa-code"></i> <div>Code generated<br/><span>main.py</span></div>
+            <span class="mono">21:48</span> <i class="fa-solid fa-code"></i>
+            <div>Code generated<br /><span>main.py</span></div>
           </div>
           <div class="event-item">
-            <span class="mono">21:47</span> <i class="fa-solid fa-globe"></i> <div>Web search<br/><span>AI advancements 2025</span></div>
+            <span class="mono">21:47</span> <i class="fa-solid fa-globe"></i>
+            <div>Web search<br /><span>AI advancements 2025</span></div>
           </div>
           <div class="event-item">
-            <span class="mono">21:45</span> <i class="fa-solid fa-file"></i> <div>File opened<br/><span>project_plan.pdf</span></div>
+            <span class="mono">21:45</span> <i class="fa-solid fa-file"></i>
+            <div>File opened<br /><span>project_plan.pdf</span></div>
           </div>
         </div>
 
@@ -186,9 +223,12 @@
           <div style="display: flex; gap: 15px; align-items: center; margin-top: 10px;">
             <div class="health-ring">96%</div>
             <div class="health-stats" style="flex: 1; font-size: 0.75rem;">
-              <div style="display: flex; justify-content: space-between;"><span>Temp</span><span class="mono">48°C</span></div>
-              <div style="display: flex; justify-content: space-between;"><span>Battery</span><span class="mono">82%</span></div>
-              <div style="display: flex; justify-content: space-between;"><span>Uptime</span><span class="mono">12h 34m</span></div>
+              <div style="display: flex; justify-content: space-between;"><span>Temp</span><span
+                  class="mono">48°C</span></div>
+              <div style="display: flex; justify-content: space-between;"><span>Battery</span><span
+                  class="mono">82%</span></div>
+              <div style="display: flex; justify-content: space-between;"><span>Uptime</span><span class="mono">12h
+                  34m</span></div>
             </div>
           </div>
         </div>
@@ -209,9 +249,50 @@
         <div class="dock-icon"><i class="fa-solid fa-gear"></i></div>
         <div class="dock-divider"></div>
         <div class="dock-icon add-btn"><i class="fa-solid fa-plus"></i></div>
+        <div class="dock-divider"></div>
+        <div class="dock-icon" id="startNavixBtn"
+          style="width: auto; padding: 0 20px; border-radius: 20px; background: var(--cyan); color: var(--bg-dark); font-weight: bold; cursor: pointer;">
+          <i class="fa-solid fa-power-off"></i> &nbsp; START
+        </div>
       </div>
     </footer>
   </div>
+
+  <!-- NAVIX AVATAR OVERLAY -->
+  <div id="navixAvatarOverlay"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(5,7,13,0.95); z-index: 9999; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(15px);">
+    <img src="avatar.png" alt="NAVIX Avatar"
+      style="max-height: 75vh; max-width: 90vw; border-radius: 20px; box-shadow: 0 0 50px var(--cyan); border: 2px solid var(--cyan); animation: pulse 2s infinite alternate;"
+      onerror="this.src='https://via.placeholder.com/600x800.png?text=Please+save+image+as+avatar.png+in+navix_hud_ui'">
+    <div
+      style="margin-top: 30px; font-family: 'Space Grotesk', sans-serif; font-size: 24px; color: var(--cyan); letter-spacing: 2px;">
+      NAVIX ACTIVE</div>
+    <div style="margin-top: 10px; color: var(--text-muted); font-size: 14px;">Press ENTER to shutdown terminal</div>
+  </div>
+
+  <script>
+    const startBtn = document.getElementById('startNavixBtn');
+    const overlay = document.getElementById('navixAvatarOverlay');
+
+    startBtn.addEventListener('click', () => {
+      overlay.style.display = 'flex';
+    });
+
+    document.addEventListener('keydown', async (e) => {
+      if (e.key === 'Enter' && overlay.style.display === 'flex') {
+        overlay.innerHTML = '<div style="font-family: \'Space Grotesk\', sans-serif; font-size: 32px; color: var(--red); letter-spacing: 2px; text-shadow: 0 0 20px var(--red);">SHUTTING DOWN...</div>';
+        try {
+          await fetch('http://localhost:8000/shutdown', { method: 'POST' });
+        } catch (err) {
+          console.log("Shutdown requested", err);
+        }
+        setTimeout(() => {
+          overlay.style.display = 'none';
+        }, 1500);
+      }
+    });
+  </script>
+
   <script src="mode.js"></script>
   <script src="pin.js"></script>
   <script src="news.js"></script>
@@ -219,4 +300,5 @@
   <script src="hud.js"></script>
   <script src="whatsapp.js"></script>
 </body>
+
 </html>

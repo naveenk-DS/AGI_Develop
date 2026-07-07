@@ -66,18 +66,64 @@ def _test_mic_with_timeout(m, timeout: float = _MIC_TEST_TIMEOUT) -> bool:
     return result[0]
 
 
+class SoundDeviceMicWrapper:
+    def __init__(self, device_id=None):
+        self.device_id = device_id
+        try:
+            self.name = sd.query_devices(device_id)['name'] if device_id is not None else "Default sd Mic"
+        except Exception:
+            self.name = "Fallback sd Mic"
+
+    class _Recorder:
+        def __init__(self, device_id, samplerate, channels, blocksize):
+            self.device_id = device_id
+            self.samplerate = samplerate
+            self.channels = channels
+            self.blocksize = blocksize
+            self.stream = None
+
+        def __enter__(self):
+            self.stream = sd.InputStream(
+                device=self.device_id, 
+                samplerate=self.samplerate, 
+                channels=self.channels, 
+                blocksize=self.blocksize, 
+                dtype='float32'
+            )
+            self.stream.start()
+            return self
+
+        def __exit__(self, *args):
+            if self.stream:
+                self.stream.stop()
+                self.stream.close()
+
+        def record(self, numframes):
+            if not self.stream:
+                raise RuntimeError("Stream not started")
+            data, overflow = self.stream.read(numframes)
+            return data
+
+    def recorder(self, samplerate, channels, blocksize):
+        return self._Recorder(self.device_id, samplerate, channels, blocksize)
+
 def _get_mic():
     """
     Pick and cache the first microphone that actually produces audio.
     Each mic is tested with a hard 2s timeout so disconnected Bluetooth
     devices never freeze startup. Works with any mic type.
+    Falls back to sounddevice if soundcard fails.
     """
     global _mic
     if _mic is not None:
         return _mic
 
     import soundcard as sc
-    all_mics = sc.all_microphones(include_loopback=False)
+    try:
+        all_mics = sc.all_microphones(include_loopback=False)
+    except Exception as e:
+        logger.warning(f"soundcard failed to enumerate mics: {e}")
+        all_mics = []
 
     # Pass 1 — find first mic that produces non-zero audio within timeout
     for m in all_mics:
@@ -113,6 +159,24 @@ def _get_mic():
             _mic = m
             logger.info(f"Mic selected (silent-room fallback): {m.name}")
             return _mic
+
+    # Pass 3 — Fallback to sounddevice if soundcard completely fails
+    logger.warning("Soundcard failed to find a working mic. Falling back to sounddevice.")
+    try:
+        fallback_mic = SoundDeviceMicWrapper(get_working_device())
+        if _test_mic_with_timeout(fallback_mic):
+            _mic = fallback_mic
+            logger.info(f"Fallback Mic selected: {_mic.name}")
+            return _mic
+            
+        # Or just accept it if it opens
+        with fallback_mic.recorder(samplerate=SAMPLE_RATE, channels=1, blocksize=4800):
+            pass
+        _mic = fallback_mic
+        logger.info(f"Fallback Mic selected (silent-room): {_mic.name}")
+        return _mic
+    except Exception as e:
+        logger.error(f"Fallback sounddevice mic also failed: {e}")
 
     logger.error("No working microphone found!")
     return None
