@@ -5,9 +5,9 @@ from navix.services.ai.document_loader import load_document
 from core.rag_chain import ingest_documents
 from navix.services.memory.knowledge_graph import add_document_to_graph
 
-WATCH_DIR = Path("F:/naveen/AGI_Start/watch")
+WATCH_DIR = Path("C:/Users/Naveen/AGI_Develop/watch")
 PROCESSED_DIR = WATCH_DIR / "processed"
-LEARNING_LOG = Path("F:/naveen/AGI_Start/logs/learning.log")
+LEARNING_LOG = Path("C:/Users/Naveen/AGI_Develop/logs/learning.log")
 
 _learning = False
 

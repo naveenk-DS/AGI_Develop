@@ -48,9 +48,9 @@ async def pc_type(body: CommandRequest):
 async def pc_screenshot():
     try:
         import os
-        os.makedirs("F:/naveen/AGI_Start/screenshots", exist_ok=True)
+        os.makedirs("C:/Users/Naveen/AGI_Develop/screenshots", exist_ok=True)
         from navix.desktop.screen.screenshot import take_screenshot
-        result = take_screenshot("F:/naveen/AGI_Start/screenshots/screenshot.png")
+        result = take_screenshot("C:/Users/Naveen/AGI_Develop/screenshots/screenshot.png")
         return {"status": "ok", "result": result}
     except Exception as e:
         return {"status": "error", "result": str(e)}

@@ -211,12 +211,9 @@ async def navix_session():
             set_tray_state("talking")
             await loop.run_in_executor(None, speak, greeting)
 
-    # ── Start conversation immediately after startup ──────────────────────────
-    # No wake word needed — go straight into conversation
+    # ── Background tasks & standby mode ───────────────────────────────────────
     asyncio.create_task(start_reminder_loop())
-
-    # Jump directly into conversation loop
-    await handle_wake_word("")
+    logger.info("Startup complete — standing by for wake word 'Naveen'")
 
 
 _conversation_active = False
@@ -276,15 +273,23 @@ async def handle_wake_word(text: str):
     await loop.run_in_executor(None, speak, activation)
 
     # ── Continuous conversation loop ─────────────────────────────────────────
+    empty_turns = 0
     while True:
         set_tray_state("active")
         from navix.routers.hud import push_hud
         push_hud(state="listening")
         # Run blocking listen_once() in executor so event loop stays responsive
-        command = await loop.run_in_executor(None, listen_once, 30)
+        command = await loop.run_in_executor(None, listen_once, 15)
 
         if not command or not command.strip():
+            empty_turns += 1
+            if empty_turns >= 2:
+                logger.info("No speech detected — returning to sleep mode")
+                set_tray_state("sleeping")
+                push_hud(state="ready")
+                break
             continue
+        empty_turns = 0
 
         command_lower = command.lower().strip()
         logger.info(f"Command: {command}")

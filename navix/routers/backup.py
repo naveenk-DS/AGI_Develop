@@ -17,7 +17,7 @@ async def trigger_backup(background_tasks: BackgroundTasks):
 
 @router.get("/list")
 async def list_backups():
-    backup_dir = Path("F:/naveen/AGI_Start/backups")
+    backup_dir = Path("C:/Users/Naveen/AGI_Develop/backups")
     if not backup_dir.exists():
         return {"backups": [], "count": 0}
     zips = sorted(backup_dir.glob("backup_*.zip"),

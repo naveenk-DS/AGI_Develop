@@ -176,7 +176,7 @@ def build_graph():
     return graph
 
 async def get_graph():
-    conn = await aiosqlite.connect("F:/naveen/AGI_Start/data/navix_state.db")
+    conn = await aiosqlite.connect("C:/Users/Naveen/AGI_Develop/data/navix_state.db")
     checkpointer = AsyncSqliteSaver(conn)
     await checkpointer.setup()
     graph = build_graph()

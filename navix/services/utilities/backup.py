@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime
 from loguru import logger
 
-BASE = Path("F:/naveen/AGI_Start")
+BASE = Path("C:/Users/Naveen/AGI_Develop")
 BACKUP_DIR = BASE / "backups"
 DATA_DIR = BASE / "data"
 

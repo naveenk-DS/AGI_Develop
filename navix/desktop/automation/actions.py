@@ -123,9 +123,9 @@ async def execute_pc_command(text: str) -> str:
     elif cmd["action"] == "close_tab_keyboard":
         return close_tab_keyboard()
     elif cmd["action"] == "screenshot":
-        path = "F:/naveen/AGI_Start/screenshots/screenshot.png"
+        path = "C:/Users/Naveen/AGI_Develop/screenshots/screenshot.png"
         import os
-        os.makedirs("F:/naveen/AGI_Start/screenshots", exist_ok=True)
+        os.makedirs("C:/Users/Naveen/AGI_Develop/screenshots", exist_ok=True)
         return take_screenshot(path)
     elif cmd["action"] == "minimize":
         return minimize_window()

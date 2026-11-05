@@ -28,16 +28,13 @@ def add_interrupt_callback(callback):
 
 
 def _check_wake_word(text: str) -> bool:
+    import re
     text_lower = text.lower().strip()
-    wake_words = [
-        "naveen", "hey naveen", "hi naveen",
-        "navin", "naven", "navine", "nabean",
-        "kevin", "navi", "navy", "navey",
-        "the bean", "nahveen", "navien",
-        "hey", "mofi",
-        "நவீன்",
+    patterns = [
+        r"\b(hey|hi|hello)?\s*(naveen|navin|navix)\b",
+        r"\bநவீன்\b",
     ]
-    return any(w in text_lower for w in wake_words)
+    return any(re.search(pat, text_lower) for pat in patterns)
 
 
 INTERRUPT_WORDS = ["stop", "wait", "pause", "hold on", "listen", "hey", "naveen", "quiet"]
@@ -78,7 +75,12 @@ def start_wake_word_listener():
                         audio = chunk[:, 0].astype(np.float32)
 
                         energy = float(np.sqrt(np.mean(audio ** 2)))
-                        if energy < 0.001:
+                        if energy < 0.005:
+                            continue
+
+                        # Never process audio while NAVIX is outputting speech through speakers
+                        from navix.services.voice.speaker import is_speaking, interrupt_speech
+                        if is_speaking():
                             continue
 
                         text = transcribe_audio(audio)
@@ -86,13 +88,6 @@ def start_wake_word_listener():
                             continue
 
                         logger.debug(f"Heard: {text}")
-
-                        from navix.services.voice.speaker import is_speaking, interrupt_speech
-                        if is_speaking() and _check_interrupt(text):
-                            interrupt_speech()
-                            for cb in _interrupt_callbacks:
-                                cb(text)
-                            continue
 
                         if _check_wake_word(text):
                             logger.info(f"Wake word detected: {text}")

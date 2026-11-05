@@ -1,8 +1,7 @@
 /* ═══════════════════════════════════════════════════
-   NAVIX Q&A LIVE PANEL — qa.js
-   Polls backend at http://127.0.0.1:8001 for the
-   latest voice interaction (question + response).
-   Updates the center Q&A panel in real time.
+   NAVIX HUD Q&A & CHAT ENGINE — qa.js
+   Connects the Web HUD input fields to the FastAPI backend (http://127.0.0.1:8001/chat)
+   and polls live voice interactions from /hud/latest.
 ═══════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -10,169 +9,176 @@
   const API = 'http://127.0.0.1:8001';
   const POLL_MS = 1500;
 
-  /* ── DOM refs ─────────────────────────────────── */
-  const qaBadge = document.getElementById('qaBadge');
-  const qaQuestionEl = document.getElementById('qaQuestionText');
-  const qaAnswerEl = document.getElementById('qaAnswerText');
-  const qaRecList = document.getElementById('qaRecList');
+  // DOM elements
+  const chatInput = document.getElementById('chatInput');
+  const chatSendBtn = document.getElementById('chatSendBtn');
+  const chatHistory = document.getElementById('chatHistory');
+  const chatStatusBadge = document.getElementById('chatStatusBadge');
+  const topSearchInput = document.getElementById('topSearchInput');
   const orbStatus = document.getElementById('orbStatus');
 
-  /* ── State ────────────────────────────────────── */
-  let lastQuestion = '';
-  let lastAnswer = '';
-  let isTyping = false;
+  let isSending = false;
+  let lastVoiceQuestion = '';
+  let lastVoiceAnswer = '';
 
-  /* ── Recommendations pool ─────────────────────── */
-  const RECS = [
-    'Try: "What\'s the latest AI news?"',
-    'Try: "Summarize my notes"',
-    'Try: "Open Chrome and search for AI news"',
-    'Try: "What is the weather today?"',
-    'Try: "Write a Python function to sort a list"',
-    'Try: "Tell me a fun fact about space"',
-    'Try: "Set a reminder for 5 PM"',
-    'Try: "Explain quantum computing simply"',
-    'Try: "What did we discuss yesterday?"',
-    'Try: "Create a to-do list for today"',
-  ];
-
-  function shuffleRecs() {
-    const picks = [...RECS].sort(() => Math.random() - 0.5).slice(0, 3);
-    qaRecList.innerHTML = '';
-    picks.forEach(r => {
-      const s = document.createElement('span');
-      s.className = 'qa-rec-item';
-      s.textContent = r;
-      // Click on recommendation to ask it
-      s.addEventListener('click', () => askQuestion(r.replace('Try: "', '').replace('"', '')));
-      qaRecList.appendChild(s);
-    });
+  function setStatus(stateText, colorClass = 'emerald-text') {
+    if (chatStatusBadge) {
+      chatStatusBadge.className = colorClass;
+      chatStatusBadge.innerHTML = `<i class="fa-solid fa-circle-dot" style="font-size: 8px;"></i> ${stateText}`;
+    }
+    if (orbStatus) {
+      orbStatus.textContent = `◈ ${stateText}`;
+    }
   }
 
-  /* ── Type-writer effect ───────────────────────── */
-  function typeWrite(el, text, speed = 18) {
-    if (isTyping) { el.textContent = text; return; }
-    isTyping = true;
-    el.textContent = '';
-    el.classList.add('qa-cursor');
-    let i = 0;
-    const iv = setInterval(() => {
-      el.textContent += text[i++];
-      if (i >= text.length) {
-        clearInterval(iv);
-        el.classList.remove('qa-cursor');
-        isTyping = false;
-      }
-    }, speed);
+  function appendMessage(sender, text) {
+    if (!chatHistory) return;
+    chatHistory.style.display = 'flex';
+
+    const msgEl = document.createElement('div');
+    msgEl.style.display = 'flex';
+    msgEl.style.flexDirection = 'column';
+    msgEl.style.gap = '2px';
+    msgEl.style.padding = '8px 12px';
+    msgEl.style.borderRadius = '8px';
+    msgEl.style.fontSize = '0.9rem';
+    msgEl.style.lineHeight = '1.4';
+
+    if (sender === 'user') {
+      msgEl.style.background = 'rgba(0, 245, 255, 0.1)';
+      msgEl.style.border = '1px solid rgba(0, 245, 255, 0.3)';
+      msgEl.style.alignSelf = 'flex-end';
+      msgEl.style.maxWidth = '85%';
+      msgEl.innerHTML = `<span style="font-size: 0.75rem; color: var(--cyan); font-weight: 700;">YOU</span><span>${escapeHtml(text)}</span>`;
+    } else {
+      msgEl.style.background = 'rgba(168, 85, 247, 0.1)';
+      msgEl.style.border = '1px solid rgba(168, 85, 247, 0.3)';
+      msgEl.style.alignSelf = 'flex-start';
+      msgEl.style.maxWidth = '90%';
+      msgEl.innerHTML = `<span style="font-size: 0.75rem; color: #a855f7; font-weight: 700;">NAVIX</span><span>${escapeHtml(text)}</span>`;
+    }
+
+    chatHistory.appendChild(msgEl);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+    return msgEl;
   }
 
-  /* ── Set badge state ──────────────────────────── */
-  function setBadge(state) {
-    const states = {
-      ready: { text: 'READY', cls: '' },
-      listening: { text: 'LISTENING', cls: 'listening' },
-      thinking: { text: 'THINKING', cls: 'thinking' },
-      speaking: { text: 'SPEAKING', cls: 'speaking' },
-    };
-    const s = states[state] || states.ready;
-    qaBadge.textContent = s.text;
-    qaBadge.className = 'qa-badge' + (s.cls ? ' ' + s.cls : '');
-
-    // Also sync orb status
-    const orbMap = { ready: '◈ ONLINE', listening: '◉ LISTENING', thinking: '◎ THINKING', speaking: '◉ SPEAKING' };
-    if (orbStatus) orbStatus.textContent = orbMap[state] || '◈ ONLINE';
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
-  /* ── Ask a question via API ───────────────────── */
-  async function askQuestion(q) {
-    qaQuestionEl.textContent = q;
-    setBadge('thinking');
+  async function handleSend(query) {
+    if (!query || !query.trim() || isSending) return;
+    const cleanQuery = query.trim();
+
+    if (chatInput) chatInput.value = '';
+    if (topSearchInput) topSearchInput.value = '';
+
+    appendMessage('user', cleanQuery);
+    isSending = true;
+    setStatus('THINKING...', 'cyan-text');
+
+    // Create placeholder for assistant
+    const replyPlaceholder = appendMessage('assistant', 'Thinking...');
+
     try {
       const res = await fetch(`${API}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: q }),
+        body: JSON.stringify({ message: cleanQuery }),
       });
-      if (!res.ok) throw new Error('API error');
-      const data = await res.json();
-      const answer = data.reply || data.response || data.message || JSON.stringify(data);
-      lastQuestion = q;
-      lastAnswer = answer;
-      setBadge('speaking');
-      typeWrite(qaAnswerEl, answer);
-      setTimeout(() => setBadge('ready'), 4000);
-      shuffleRecs();
-    } catch (e) {
-      setBadge('ready');
-      qaAnswerEl.textContent = 'Backend not responding. Make sure navix_start.py is running.';
-    }
-  }
 
-  /* ── Poll backend for latest interaction ─────── */
-  let pollActive = false;
-
-  async function poll() {
-    if (pollActive) return;
-    pollActive = true;
-    try {
-      // Try to get latest session/conversation from dashboard or sessions endpoint
-      const res = await fetch(`${API}/dashboard`, { signal: AbortSignal.timeout(2000) });
-      if (res.ok) {
-        const data = await res.json();
-        // Update metrics if available
-        if (data.total_sessions !== undefined) {
-          const alertEl = document.getElementById('alert-val');
-          if (alertEl) alertEl.textContent = data.active_sessions ?? 0;
-        }
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
-    } catch (_) {
-      // Silent fail — backend might not have this endpoint
+
+      const data = await res.json();
+      const reply = data.reply || data.response || data.message || 'No answer received from AI.';
+
+      setStatus('ONLINE • READY', 'emerald-text');
+      if (replyPlaceholder) {
+        replyPlaceholder.innerHTML = `<span style="font-size: 0.75rem; color: #a855f7; font-weight: 700;">NAVIX</span><span>${escapeHtml(reply)}</span>`;
+      }
+    } catch (err) {
+      console.error('NAVIX chat error:', err);
+      setStatus('ERROR • CHECK BACKEND', 'text-red');
+      if (replyPlaceholder) {
+        replyPlaceholder.innerHTML = `<span style="font-size: 0.75rem; color: #ff4d4d; font-weight: 700;">NAVIX</span><span style="color: #ff8888;">Could not connect to backend at ${API}. Make sure navix_start.py is running.</span>`;
+      }
+      setTimeout(() => setStatus('ONLINE • READY', 'emerald-text'), 5000);
     } finally {
-      pollActive = false;
+      isSending = false;
+      if (chatHistory) chatHistory.scrollTop = chatHistory.scrollHeight;
     }
   }
 
-  /* ── Listen for NAVIX events (from navix_start.py via custom events) ── */
-  // navix_start.py can post to a /hud/event endpoint which we poll
-  async function pollHudEvents() {
+  // ── Event listeners ───────────────────────────────────────────
+  if (chatSendBtn) {
+    chatSendBtn.addEventListener('click', () => {
+      if (chatInput) handleSend(chatInput.value);
+    });
+  }
+
+  if (chatInput) {
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSend(chatInput.value);
+      }
+    });
+  }
+
+  if (topSearchInput) {
+    topSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSend(topSearchInput.value);
+      }
+    });
+  }
+
+  // Smart suggestions click handlers
+  document.querySelectorAll('.sugg-item').forEach((item) => {
+    item.style.cursor = 'pointer';
+    item.addEventListener('click', () => {
+      const text = item.textContent.trim();
+      handleSend(text);
+    });
+  });
+
+  // ── Poll voice HUD events ─────────────────────────────────────
+  async function pollVoiceEvents() {
     try {
       const res = await fetch(`${API}/hud/latest`, { signal: AbortSignal.timeout(2000) });
       if (!res.ok) return;
       const ev = await res.json();
 
-      if (ev.question && ev.question !== lastQuestion) {
-        lastQuestion = ev.question;
-        qaQuestionEl.textContent = ev.question;
-        setBadge(ev.state || 'thinking');
+      if (ev.question && ev.question !== lastVoiceQuestion) {
+        lastVoiceQuestion = ev.question;
+        appendMessage('user', `🎙️ "${ev.question}"`);
       }
-      if (ev.answer && ev.answer !== lastAnswer) {
-        lastAnswer = ev.answer;
-        typeWrite(qaAnswerEl, ev.answer);
-        setBadge('ready');
-        shuffleRecs();
+      if (ev.answer && ev.answer !== lastVoiceAnswer) {
+        lastVoiceAnswer = ev.answer;
+        appendMessage('assistant', ev.answer);
       }
-      if (ev.state) setBadge(ev.state);
-
+      if (ev.state) {
+        const stateMap = {
+          listening: ['LISTENING...', 'cyan-text'],
+          thinking: ['THINKING...', 'cyan-text'],
+          speaking: ['SPEAKING...', 'purple-text'],
+          ready: ['ONLINE • READY', 'emerald-text'],
+        };
+        const [txt, cls] = stateMap[ev.state] || ['ONLINE • READY', 'emerald-text'];
+        setStatus(txt, cls);
+      }
     } catch (_) {
-      // /hud/latest endpoint doesn't exist yet — silent fail
+      // Backend polling silent catch
     }
   }
 
-  /* ── Boot ─────────────────────────────────────── */
-  document.addEventListener('navixUnlocked', () => {
-    shuffleRecs();
-    setBadge('ready');
-    setInterval(poll, 10000);
-    setInterval(pollHudEvents, POLL_MS);
-  });
-
-  // If already unlocked (page refresh)
-  const overlay = document.getElementById('pinOverlay');
-  if (!overlay || overlay.style.display === 'none') {
-    shuffleRecs();
-    setBadge('ready');
-    setInterval(poll, 10000);
-    setInterval(pollHudEvents, POLL_MS);
-  }
-
+  setInterval(pollVoiceEvents, POLL_MS);
 })();

@@ -101,7 +101,7 @@ def _speak_ssml(text: str, voice: str):
             _speak_plain(text, voice)
             return
 
-        ffplay = "F:\\naveen\\AGI_Start\\ffmpeg\\ffmpeg-master-latest-win64-gpl\\bin\\ffplay.exe"
+        ffplay = "C:\\\\Users\\\\Naveen\\\\AGI_Develop\\ffmpeg\\ffmpeg-master-latest-win64-gpl\\bin\\ffplay.exe"
         proc = subprocess.Popen(
             [ffplay, "-nodisp", "-autoexit", "-loglevel", "quiet", tmp_mp3],
             stdout=subprocess.DEVNULL,
@@ -135,7 +135,7 @@ def _speak_plain(text: str, voice: str):
         ], capture_output=True, timeout=15)
 
         if os.path.exists(tmp):
-            ffplay = "F:\\naveen\\AGI_Start\\ffmpeg\\ffmpeg-master-latest-win64-gpl\\bin\\ffplay.exe"
+            ffplay = "C:\\\\Users\\\\Naveen\\\\AGI_Develop\\ffmpeg\\ffmpeg-master-latest-win64-gpl\\bin\\ffplay.exe"
             proc = subprocess.Popen(
                 [ffplay, "-nodisp", "-autoexit", "-loglevel", "quiet", tmp],
                 stdout=subprocess.DEVNULL,

@@ -98,7 +98,7 @@ async def learn_from_file(body: dict):
 @router.get("/learn/log")
 async def learning_log():
     from pathlib import Path
-    log = Path("F:/naveen/AGI_Start/logs/learning.log")
+    log = Path("C:/Users/Naveen/AGI_Develop/logs/learning.log")
     if not log.exists():
         return {"log": "No learning log yet"}
     lines = log.read_text(encoding="utf-8").strip().split("\n")

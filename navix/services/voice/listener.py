@@ -24,7 +24,7 @@ def get_working_device() -> int:
     except:
         return 0
 # ── Voice data collection folder ──────────────────────────────────────────────
-VOICE_DATA_DIR = Path("F:/naveen/AGI_Start/data/voice_samples")
+VOICE_DATA_DIR = Path("C:/Users/Naveen/AGI_Develop/data/voice_samples")
 VOICE_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # ── Microphone selection (soundcard / WASAPI) ─────────────────────────────────
@@ -196,14 +196,17 @@ def get_model():
     global _model
     if _model is None:
         import torch
-        logger.info("Loading Whisper large-v3-turbo on CUDA...")
         from faster_whisper import WhisperModel
+        use_cuda = torch.cuda.is_available()
+        device = "cuda" if use_cuda else "cpu"
+        compute_type = "float16" if use_cuda else "int8"
+        logger.info(f"Loading Whisper large-v3-turbo on {device.upper()} ({compute_type})...")
         _model = WhisperModel(
             "large-v3-turbo",
-            device="cuda",
-            compute_type="float16"
+            device=device,
+            compute_type=compute_type
         )
-        logger.info("Whisper large-v3-turbo loaded on CUDA")
+        logger.info(f"Whisper large-v3-turbo loaded on {device.upper()}")
     return _model
 
 
@@ -227,7 +230,7 @@ def save_voice_sample(audio: np.ndarray, transcription: str):
 def record_until_silence(
     min_duration: float  = 1.0,
     max_duration: float  = 30.0,
-    silence_threshold: float = 0.005,   # above typical background noise (~0.002-0.004)
+    silence_threshold: float = 0.008,   # above typical background noise (~0.002-0.004)
     silence_duration: float  = 1.5,
 ) -> np.ndarray:
     """
@@ -248,6 +251,13 @@ def record_until_silence(
     _log_every       = int(3 / chunk_dur)
 
     try:
+        import time
+        from navix.services.voice.speaker import is_speaking
+        # Wait if NAVIX is still outputting audio through speakers
+        while is_speaking():
+            time.sleep(0.1)
+        time.sleep(0.3)  # Cooldown so room echo decays before mic opens
+
         mic = _get_mic()
         if not mic:
             logger.error("No mic found for record_until_silence")

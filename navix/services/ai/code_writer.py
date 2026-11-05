@@ -5,7 +5,7 @@ from loguru import logger
 from core.llm import get_llm
 from langchain_core.messages import SystemMessage, HumanMessage
 
-OUTPUT_DIR = Path("F:/naveen/AGI_Start/generated_code")
+OUTPUT_DIR = Path("C:/Users/Naveen/AGI_Develop/generated_code")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 CODE_SYSTEM = (

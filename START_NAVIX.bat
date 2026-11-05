@@ -1,14 +1,12 @@
 @echo off
 echo Starting NAVIX...
 
-:: Start Qdrant in background
-start "Qdrant" /MIN cmd /c "cd /d F:\naveen\qdrant_bin && qdrant.exe --config-path F:\naveen\AGI_Start\config\qdrant_config.yaml"
+:: 1. Start Qdrant vector database in background
+start "Qdrant" /MIN cmd /c "cd /d C:\Users\Naveen\AGI_Develop\bin\qdrant && qdrant.exe --config-path C:\Users\Naveen\AGI_Develop\config\qdrant_config.yaml"
 
-:: Wait for Qdrant
-ping 127.0.0.1 -n 6 > nul
+:: 2. Wait for Qdrant to be ready
+ping 127.0.0.1 -n 4 > nul
 
-
-
-:: Start NAVIX voice
-cd /d F:\naveen\AGI_Start
+:: 3. Start NAVIX system
+cd /d C:\Users\Naveen\AGI_Develop
 uv run python navix_start.py

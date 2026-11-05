@@ -194,19 +194,19 @@ async def version_info():
     try:
         commit = subprocess.check_output(
             ["git", "rev-parse", "--short", "HEAD"],
-            cwd="F:/naveen/AGI_Start",
+            cwd="C:/Users/Naveen/AGI_Develop",
             encoding="utf-8"
         ).strip()
 
         branch = subprocess.check_output(
             ["git", "branch", "--show-current"],
-            cwd="F:/naveen/AGI_Start",
+            cwd="C:/Users/Naveen/AGI_Develop",
             encoding="utf-8"
         ).strip()
 
         tag = subprocess.check_output(
             ["git", "describe", "--tags", "--abbrev=0"],
-            cwd="F:/naveen/AGI_Start",
+            cwd="C:/Users/Naveen/AGI_Develop",
             encoding="utf-8"
         ).strip()
     except:

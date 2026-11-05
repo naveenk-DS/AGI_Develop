@@ -64,7 +64,7 @@ async def test_voice():
 @router.get("/voice/samples")
 async def voice_samples():
     from pathlib import Path
-    folder = Path("F:/naveen/AGI_Start/data/voice_samples")
+    folder = Path("C:/Users/Naveen/AGI_Develop/data/voice_samples")
     if not folder.exists():
         return {"count": 0, "size_mb": 0}
     

@@ -40,7 +40,7 @@
       <div class="top-center">
         <div class="search-bar">
           <i class="fa-solid fa-microphone search-icon"></i>
-          <input type="text" placeholder="Speak or type a command..." />
+          <input type="text" id="topSearchInput" placeholder="Speak or type a command..." />
           <div class="shortcut-key">Ctrl K</div>
         </div>
       </div>
@@ -148,15 +148,15 @@
         </div>
 
         <div class="chat-region glass-panel">
-          <div class="chat-status">
+          <div class="chat-status" id="chatStatus">
             I'm NAVIX, your <b>AI OS</b>.<br />
-            <span class="emerald-text"><i class="fa-solid fa-circle-dot" style="font-size: 8px;"></i> ONLINE •
-              READY</span>
+            <span class="emerald-text" id="chatStatusBadge"><i class="fa-solid fa-circle-dot" style="font-size: 8px;"></i> ONLINE • READY</span>
           </div>
+          <div class="chat-history" id="chatHistory" style="width: 85%; max-height: 220px; overflow-y: auto; display: none; flex-direction: column; gap: 10px; padding: 12px; background: rgba(0,0,0,0.4); border-radius: 12px; border: 1px solid rgba(0,245,255,0.2);"></div>
           <div class="chat-input-area">
-            <i class="fa-solid fa-microphone mic-btn"></i>
-            <input type="text" placeholder="How can I help you today?" />
-            <i class="fa-solid fa-paper-plane send-btn"></i>
+            <i class="fa-solid fa-microphone mic-btn" id="chatMicBtn"></i>
+            <input type="text" id="chatInput" placeholder="How can I help you today?" />
+            <i class="fa-solid fa-paper-plane send-btn" id="chatSendBtn" style="cursor: pointer;"></i>
           </div>
         </div>
 

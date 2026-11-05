@@ -1,5 +1,5 @@
-﻿storage:
-  storage_path: F:/naveen/AGI_Start/data/qdrant
+storage:
+  storage_path: C:/Users/Naveen/AGI_Develop/data/qdrant
 
 service:
   host: 127.0.0.1

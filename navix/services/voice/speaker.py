@@ -21,7 +21,7 @@ SAMPLE_RATE_KO = 24000        # Kokoro outputs at 24kHz
 # ── Edge TTS fallback config ───────────────────────────────────────────────────
 ENGLISH_VOICE  = "en-US-AriaNeural"
 TAMIL_VOICE    = "ta-IN-PallaviNeural"
-FFPLAY         = "F:\\naveen\\AGI_Start\\ffmpeg\\ffmpeg-master-latest-win64-gpl\\bin\\ffplay.exe"
+FFPLAY         = "C:\\\\Users\\\\Naveen\\\\AGI_Develop\\ffmpeg\\ffmpeg-master-latest-win64-gpl\\bin\\ffplay.exe"
 
 _interrupt  = threading.Event()
 _speaking   = False

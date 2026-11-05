@@ -5,7 +5,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from loguru import logger
 
-WATCH_FOLDER = Path("F:/naveen/AGI_Start/watch")
+WATCH_FOLDER = Path("C:/Users/Naveen/AGI_Develop/watch")
 API_URL = "http://127.0.0.1:8001/rag/ingest-path"
 
 SUPPORTED = {".txt", ".md", ".csv", ".pdf", ".docx"}
@@ -43,31 +43,35 @@ class NewFileHandler(FileSystemEventHandler):
         except Exception as e:
             logger.error(f"Watcher error: {e}")
 
-import threading
-
-stop_event = threading.Event()
+_observer = None
 
 def start_watcher():
-    WATCH_FOLDER.mkdir(exist_ok=True)
-    (WATCH_FOLDER / "processed").mkdir(exist_ok=True)
-
-    handler = NewFileHandler()
-    observer = Observer()
-    observer.schedule(handler, str(WATCH_FOLDER), recursive=False)
-    observer.start()
-    logger.info(f"Watching folder: {WATCH_FOLDER}")
-
+    global _observer
     try:
-        while not stop_event.is_set():
-            time.sleep(1)
-    except KeyboardInterrupt:
-        pass
-    
-    observer.stop()
-    observer.join()
+        WATCH_FOLDER.mkdir(exist_ok=True)
+        (WATCH_FOLDER / "processed").mkdir(exist_ok=True)
+
+        handler = NewFileHandler()
+        _observer = Observer()
+        _observer.schedule(handler, str(WATCH_FOLDER), recursive=False)
+        _observer.start()
+        logger.info(f"Watching folder: {WATCH_FOLDER}")
+    except Exception as e:
+        logger.warning(f"Watcher start error: {e}")
+
+def stop_watcher():
+    global _observer
+    if _observer:
+        try:
+            _observer.stop()
+            _observer.join(timeout=2)
+        except Exception:
+            pass
 
 if __name__ == "__main__":
+    start_watcher()
     try:
-        start_watcher()
+        while True:
+            time.sleep(1)
     except KeyboardInterrupt:
-        stop_event.set()
+        stop_watcher()

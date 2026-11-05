@@ -83,49 +83,84 @@ async def preload_models():
         logger.warning(f"Preload warning: {e}")
 
 
+def is_port_open(host="127.0.0.1", port=5433, timeout=0.3):
+    import socket
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except Exception:
+        return False
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("Database tables ready")
+    if is_port_open("127.0.0.1", 5433):
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            logger.info("Database tables ready")
+        except Exception as e:
+            logger.warning(f"Database error: {e}")
+    else:
+        logger.info("PostgreSQL is offline (port 5433 closed) — continuing without DB.")
 
-    from navix.services.utilities.watcher import start_watcher
-    loop = asyncio.get_event_loop()
-    loop.run_in_executor(executor, start_watcher)
-    logger.info("File watcher started")
+    try:
+        from navix.services.utilities.watcher import start_watcher
+        start_watcher()
+    except Exception as e:
+        logger.warning(f"File watcher start skipped: {e}")
 
-    from apscheduler.schedulers.asyncio import AsyncIOScheduler
-    from navix.services.utilities.backup import run_backup
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(run_backup, "cron", hour=3, minute=0)
-    scheduler.start()
-    logger.info("Scheduler started")
+    scheduler = None
+    try:
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
+        from navix.services.utilities.backup import run_backup
+        scheduler = AsyncIOScheduler()
+        scheduler.add_job(run_backup, "cron", hour=3, minute=0)
+        scheduler.start()
+        logger.info("Scheduler started")
+    except Exception as e:
+        logger.warning(f"Scheduler start skipped: {e}")
 
-    # start continual learning
-    from navix.services.ai.continual_learning import watch_and_learn
-    asyncio.create_task(watch_and_learn())
-    logger.info("Continual learning started")
+    try:
+        from navix.services.ai.continual_learning import watch_and_learn
+        asyncio.create_task(watch_and_learn())
+        logger.info("Continual learning started")
+    except Exception as e:
+        logger.warning(f"Continual learning start skipped: {e}")
 
-    from core.mcp_tools import register_all_tools
-    register_all_tools()
-    logger.info("MCP tools registered")
+    try:
+        from core.mcp_tools import register_all_tools
+        register_all_tools()
+        logger.info("MCP tools registered")
+    except Exception as e:
+        logger.warning(f"MCP tools skipped: {e}")
 
-    asyncio.create_task(preload_models())
-    logger.info("Model preload started")
+    try:
+        asyncio.create_task(preload_models())
+        logger.info("Model preload started")
+    except Exception as e:
+        logger.warning(f"Preload models skipped: {e}")
 
-    asyncio.create_task(start_health_monitor(interval=60))
-    logger.info("Health monitor started")
+    try:
+        asyncio.create_task(start_health_monitor(interval=60))
+        logger.info("Health monitor started")
+    except Exception as e:
+        logger.warning(f"Health monitor skipped: {e}")
 
-
-
-    logger.info("MyAIProduct API started")
+    logger.info("NAVIX API server started successfully")
     yield
 
-    scheduler.shutdown()
-    from navix.services.utilities.watcher import stop_event
-    stop_event.set()
-    executor.shutdown(wait=True)
-    await engine.dispose()
+    if scheduler:
+        try:
+            scheduler.shutdown()
+        except Exception:
+            pass
+    try:
+        from navix.services.utilities.watcher import stop_event
+        stop_event.set()
+        executor.shutdown(wait=False)
+        await engine.dispose()
+    except Exception:
+        pass
     logger.info("API shutdown")
 
 

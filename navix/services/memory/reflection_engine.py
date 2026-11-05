@@ -5,8 +5,8 @@ from loguru import logger
 from core.llm import get_llm
 from langchain_core.messages import SystemMessage, HumanMessage
 
-EXPERIENCE_DB_PATH = Path("F:/naveen/AGI_Start/data/experience_db.json")
-PREFERENCES_DB_PATH = Path("F:/naveen/AGI_Start/data/user_preferences.json")
+EXPERIENCE_DB_PATH = Path("C:/Users/Naveen/AGI_Develop/data/experience_db.json")
+PREFERENCES_DB_PATH = Path("C:/Users/Naveen/AGI_Develop/data/user_preferences.json")
 
 def _load_db(path: Path) -> list:
     if not path.exists():

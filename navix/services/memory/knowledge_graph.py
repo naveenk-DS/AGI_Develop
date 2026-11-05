@@ -5,7 +5,7 @@ from loguru import logger
 from core.llm import get_llm
 from langchain_core.messages import HumanMessage, SystemMessage
 
-GRAPH_FILE = Path("F:/naveen/AGI_Start/data/knowledge_graph.json")
+GRAPH_FILE = Path("C:/Users/Naveen/AGI_Develop/data/knowledge_graph.json")
 
 # in-memory graph
 _graph = {
