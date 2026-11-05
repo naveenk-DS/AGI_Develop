@@ -1,8 +1,7 @@
-/* ═══════════════════════════════════════════════
-   variables.css — NAVIX Design Tokens
-   Colors · Fonts · Shadows · Borders
-   ~60 lines
-═══════════════════════════════════════════════ */
+/* ==========================================
+   NAVIX OS — PROFESSIONAL DESIGN SYSTEM
+   ChatGPT-inspired dark theme
+========================================== */
 
 *,
 *::before,
@@ -13,83 +12,117 @@
 }
 
 :root {
-  /* ── Core Backgrounds ── */
-  --bg-dark: #05070D;
-  --bg-panel: #070B14;
-  --bg-card: #090F1F;
-  --panel: rgba(9, 15, 31, 0.7);
+  /* Backgrounds */
+  --bg-dark: #212121;
+  --bg-panel: #171717;
+  --bg-card: #2B2B2B;
+  --panel: #171717;
 
-  /* ── Primary Colors ── */
+  /* Surfaces */
+  --sidebar-bg: #171717;
+  --main-bg: #212121;
+  --surface-hover: #303030;
+  --surface-active: #383838;
+
+  /* Text */
+  --text-primary: #F5F5F5;
+  --text-secondary: #B4B4B4;
+  --text-muted: #858585;
+
+  /* NAVIX accent */
+  --cyan: #19C5D1;
   --blue: #00BFFF;
-  --cyan: #00F5FF;
-  --purple: #7A5CFF;
+  --purple: #8B7CFF;
   --violet: #9A4DFF;
 
-  /* ── Accents ── */
-  --emerald: #00FFB3;
+  /* Status colors */
+  --emerald: #10A37F;
+  --green: #10A37F;
   --orange: #FFB347;
-  --red: #FF3366;
+  --amber: #FFB347;
+  --red: #EF4444;
 
-  /* ── Borders & Glass ── */
-  --border: rgba(0, 245, 255, 0.15);
-  --border-glow: rgba(122, 92, 255, 0.3);
-  --glass: rgba(7, 11, 20, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.05);
+  /* Borders */
+  --border: #383838;
+  --glass-border: #303030;
+  --border-glow: rgba(25, 197, 209, 0.15);
 
-  /* ── Glows ── */
-  --glow-c: 0 0 10px rgba(0, 245, 255, 0.5), 0 0 20px rgba(0, 245, 255, 0.2);
-  --glow-p: 0 0 10px rgba(122, 92, 255, 0.5), 0 0 20px rgba(122, 92, 255, 0.2);
-  --glow-b: 0 0 10px rgba(0, 191, 255, 0.5), 0 0 20px rgba(0, 191, 255, 0.2);
-  --glow-e: 0 0 10px rgba(0, 255, 179, 0.5), 0 0 20px rgba(0, 255, 179, 0.2);
+  /* Compatibility with existing CSS */
+  --glass: rgba(35, 35, 35, 0.95);
 
-  /* ── Typography ── */
+  /* Shadows */
+  --glow-c: 0 0 12px rgba(25, 197, 209, 0.15);
+  --glow-p: 0 0 12px rgba(139, 124, 255, 0.15);
+  --glow-b: 0 0 12px rgba(0, 191, 255, 0.15);
+  --glow-e: 0 0 12px rgba(16, 163, 127, 0.15);
+  --glow-a: 0 0 12px rgba(255, 179, 71, 0.15);
+  --glow-g: 0 0 12px rgba(16, 163, 127, 0.15);
+  --glow-r: 0 0 12px rgba(239, 68, 68, 0.15);
+
+  /* Typography */
   --font-main: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* ── Transitions ── */
-  --ease: 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Layout */
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 64px;
+  --header-height: 56px;
+
+  /* Animation */
+  --ease: 0.25s ease;
 }
 
 html,
 body {
   width: 100%;
-  height: 100%;
-  overflow: hidden;
+  min-height: 100%;
   background: var(--bg-dark);
-  color: #E2E8F0;
+  color: var(--text-primary);
   font-family: var(--font-main);
   user-select: none;
 }
 
-/* ── Utility text colors ── */
+/* Utility colors */
 .cyan-text {
   color: var(--cyan);
-  text-shadow: var(--glow-c);
 }
 
 .amber-text {
   color: var(--amber);
-  text-shadow: var(--glow-a);
 }
 
 .green-text {
   color: var(--green);
-  text-shadow: var(--glow-g);
 }
 
 .red-text {
   color: var(--red);
-  text-shadow: var(--glow-r);
 }
 
-/* ── Divider ── */
+.purple-text {
+  color: var(--purple);
+}
+
+.blue-text {
+  color: var(--blue);
+}
+
+.emerald-text {
+  color: var(--emerald);
+}
+
+.orange-text {
+  color: var(--orange);
+}
+
+/* Divider */
 .divider {
   height: 1px;
-  background: linear-gradient(to right, transparent, var(--border), transparent);
+  background: var(--border);
   margin: 14px 0;
 }
 
-/* ── Dot indicators ── */
+/* Status indicators */
 .dot {
   width: 6px;
   height: 6px;
@@ -99,20 +132,16 @@ body {
 
 .dot.cyan {
   background: var(--cyan);
-  box-shadow: var(--glow-c);
 }
 
 .dot.amber {
   background: var(--amber);
-  box-shadow: var(--glow-a);
 }
 
 .dot.green {
   background: var(--green);
-  box-shadow: var(--glow-g);
 }
 
 .dot.red {
   background: var(--red);
-  box-shadow: var(--glow-r);
 }

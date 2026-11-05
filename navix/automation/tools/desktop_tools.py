@@ -24,6 +24,7 @@ async def vision_describe(query: str = ""):
 async def vision_read_text(query: str = ""):
     return await read_text_on_screen()
 
+
 @tool(
     name="vision_click", 
     description="Uses OCR and computer vision to find an element on the screen and click it."

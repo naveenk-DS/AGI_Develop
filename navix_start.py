@@ -47,7 +47,7 @@ async def main():
     asyncio.create_task(start_whatsapp_background())
     logger.info("WhatsApp background service started in main thread")
     
-    set_tray_state("sleeping")
+    set_tray_state("Active")
     try:
         await navix_session()
     except Exception as e:
